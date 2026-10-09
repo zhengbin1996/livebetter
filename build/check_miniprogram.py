@@ -7,7 +7,7 @@
   4. 所有 require('...') 的相对路径能否解析（并拦住 require JSON 这种不支持的写法）
   5. 页面/组件里对 utils/* 的调用，是否都在该模块的 module.exports 里
   6. 主包体积是否超 2 MB（分包是否超 2 MB）
-  7. 云函数 config.json 的定时触发器 cron 是否为合法的 7 段
+  7. 云函数 config.json 的定时触发器 cron 是否为合法的 7 段（markdown 里抄给用户的示例也一起查）
   8. WXSS 的选择器里是否混入了非 ASCII 字符（中文类名会让解析器直接崩）
 
 **为什么需要它**：小程序的相对路径是按「文件所在目录」算的，
@@ -246,6 +246,7 @@ CRON_FIELDS = 7
 
 def check_cloudfunction_triggers() -> None:
     log("[7] 云函数定时触发器 cron")
+    before = len(problems)
     cf_dir = REPO / "cloudfunctions"
     if not cf_dir.exists():
         ok("没有 cloudfunctions/，跳过")
@@ -281,7 +282,31 @@ def check_cloudfunction_triggers() -> None:
                 )
             elif not fields[0].isdigit() or not fields[1]:
                 fail(f"{where} 的 cron 第一段（秒）应写具体值，如 0")
-    ok(f"触发器 {n} 个，cron 段数与字段检查通过")
+    if len(problems) == before:
+        ok(f"触发器 {n} 个，cron 段数与字段检查通过")
+
+    # 文档里抄给用户的 cron 也要查 —— DEPLOY.md 里那串是要被**手工填进控制台**的，
+    # 它写成 6 段，用户照着抄就会把函数再搞挂一次（已经真实发生过）。
+    # 匹配两种写法：JSON 里的 `"config": "..."`，以及反引号包起来的 cron 片段。
+    doc_files = sorted(REPO.glob("*.md")) + sorted(REPO.glob("build/*.md"))
+    seen = 0
+    doc_before = len(problems)
+    for md in doc_files:
+        text = md.read_text(encoding="utf-8")
+        samples = [m.group(1) for m in re.finditer(r'"config"\s*:\s*"([^"]+)"', text)]
+        for m in re.finditer(r"`([0-9*/,?\-\s]+)`", text):
+            s = m.group(1).strip()
+            fields = s.split()
+            # 只认「至少 5 段、每段都是 cron 字符」的，避免把 `40000`、`60 秒` 之类误判
+            if len(fields) >= 5 and all(re.fullmatch(r"[0-9*/,?\-]+", f) for f in fields):
+                samples.append(s)
+        for s in samples:
+            seen += 1
+            fields = s.split()
+            if len(fields) != CRON_FIELDS:
+                fail(f"{md.name} 里的示例 cron 只有 {len(fields)} 段（应为 {CRON_FIELDS} 段）：{s!r}")
+    if seen and len(problems) == doc_before:
+        ok(f"文档里 {seen} 处示例 cron 段数正确")
 
 
 # ---------------------------------------------------------------- 8 wxss 选择器

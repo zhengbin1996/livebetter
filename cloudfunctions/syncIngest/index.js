@@ -28,9 +28,10 @@
  * 关键设计
  *   * 解析逻辑**不在这里** —— markdown → JSON 由 Actions 端的 build/parse.py 负责，
  *     那边有单测、可回滚、不受 60 秒超时限制。这里只做「下载 → 校验 → 上传 → 翻转」。
- *   * **分片逐个断点续传**。180+ 个分片一次跑不完 60 秒，所以每次调用只干到
- *     时间预算用完，把进度写进 `sync-<version>` 文档，返回 remaining，
- *     由调用方（Actions 或定时器）反复调到 remaining === 0。
+ *   * **分片断点续传 + 并发**。180+ 个分片一次跑不完 60 秒，所以每次调用只干到
+ *     时间预算用完，把进度写进 `sync-<version>` 文档（**每 5 片落一次库**），
+ *     返回 remaining，由调用方（Actions 或定时器）反复调到 remaining === 0。
+ *     并发 4 路，否则一轮只能搬 40 多个、要 5 轮以上才追平。
  *   * **先写暂存、后翻指针**。只有全部就位才更新 `manifest/current`，
  *     中途失败时线上版本完全不受影响。
  *   * **partial 会被重试**。若有个别分片始终失败，仍然翻转（避免永远同步不上），
@@ -38,13 +39,18 @@
  *     因为「跳过」的条件是 syncStatus === 'ok'。
  *
  * 环境变量（云函数配置里设）
- *   SOURCE_REPO  构建产物所在仓库（Release 的宿主），形如 `yourname/htb-app`
- *   RELEASE_TAG  Release 标签，默认 content-latest
- *   BUDGET_MS    单次执行时间预算，默认 40000（**必须小于云函数超时**，见下）
- *   SYNC_TOKEN   可选。设了之后，**公网 HTTP 调用**必须带 token 才能触发（防滥用）
+ *   SOURCE_REPO        构建产物所在仓库（Release 的宿主），形如 `yourname/htb-app`
+ *   RELEASE_TAG        Release 标签，默认 content-latest
+ *   BUDGET_MS          单次执行的时间预算，默认 40000。**不要设得比 45000 更大** ——
+ *                      平台硬超时是 60 秒，留 6 秒给写进度；设大了也会被自动压回去
+ *   FUNCTION_TIMEOUT_MS 平台给这个函数的硬超时（默认 60000）。只有改了云函数超时时间才需要动它
+ *   SYNC_TOKEN         可选。设了之后，**公网 HTTP 调用**必须带 token 才能触发（防滥用）
  *
  * ⚠️ 部署时必须把云函数超时时间从默认的 3 秒改成 60 秒，
  *    否则单次调用连一个分片都搬不完就会被平台掐断（表现为 500 / 超时，无日志）。
+ * ⚠️ 反过来，**干活时间必须留白**：被平台硬杀（`Invoking task timed out after 60 seconds`，
+ *    statusCode 433）时这一轮的进度**一点都没写进库**，下一轮从零开始 —— 症状就是
+ *    「反复超时、remaining 永远不降」。所以：并发搬 + 每 5 片落一次库 + 动态收紧请求超时。
  */
 const cloud = require('wx-server-sdk')
 const crypto = require('crypto')
@@ -62,15 +68,36 @@ const SYNC_TOKEN = process.env.SYNC_TOKEN || ''
 const MAX_REDIRECT = 5
 const MAX_ATTEMPTS = 5 // 单个分片最多重试几次，免得坏资产把人拖死
 
+// 平台给这个函数的硬超时（云函数配置里那个「超时时间」，本项目要求设成 60 秒）。
+// 干活的截止时刻绝不能靠近它 —— 必须留出 RESERVE_MS 给「写进度 + 返回」，
+// 因为**被平台硬杀时这一轮的进度就白干了**（进度是断点续传的唯一依据）。
+const HARD_TIMEOUT_MS = Number(process.env.FUNCTION_TIMEOUT_MS || 60000)
+const RESERVE_MS = 6000
+// 单个 HTTP 请求最长等多久。原来写死 30 秒 —— 比整个预算的一半还长，
+// 一个卡住的分片就能把预算吃穿，把函数直接拖到硬超时
+// （症状就是 `Invoking task timed out after 60 seconds` / statusCode 433）。
+const PER_REQUEST_MS = 12000
+const CONCURRENCY = 4 // 单线程搬 183 个分片要 5 轮以上，并发 4 路大约 2 轮就能追平
+const CHECKPOINT_EVERY = 5 // 每搬完几个分片就把进度落库，被硬杀时最多丢这几片
+
 /* ---------------------------------------------------------------- HTTP */
 
-function fetchBuffer(url, redirects) {
+/**
+ * 下载一个 URL。
+ * deadlineTs 是「干活的截止时刻」，每次请求的超时都按**离截止时刻还剩多少**动态收紧：
+ * 快用完了就只能等 1.5 秒，离得远最多等 PER_REQUEST_MS。
+ * 这样任何一个卡住的请求都不可能把函数拖过 deadline。
+ * 另外加了硬定时器 —— `req.setTimeout` 只在**空闲**时触发，
+ * 一个慢慢滴数据、始终不空闲的连接照样能耗死预算，所以必须再加一层总时长兜底。
+ */
+function fetchBuffer(url, deadlineTs, redirects) {
   const hop = redirects || 0
   return new Promise((resolve, reject) => {
     if (hop > MAX_REDIRECT) {
       reject(new Error('TOO_MANY_REDIRECTS'))
       return
     }
+    const left = Math.max(1500, Math.min(PER_REQUEST_MS, (deadlineTs || Date.now() + PER_REQUEST_MS) - Date.now()))
     const mod = url.indexOf('https:') === 0 ? https : http
     const req = mod.get(
       url,
@@ -78,21 +105,49 @@ function fetchBuffer(url, redirects) {
       (res) => {
         if ([301, 302, 303, 307, 308].indexOf(res.statusCode) >= 0 && res.headers.location) {
           res.resume()
-          resolve(fetchBuffer(new URL(res.headers.location, url).toString(), hop + 1))
+          clearTimeout(hardTimer)
+          resolve(fetchBuffer(new URL(res.headers.location, url).toString(), deadlineTs, hop + 1))
           return
         }
         if (res.statusCode !== 200) {
           res.resume()
+          clearTimeout(hardTimer)
           reject(new Error('HTTP_' + res.statusCode + ' ' + url))
           return
         }
         const chunks = []
         res.on('data', (c) => chunks.push(c))
-        res.on('end', () => resolve(Buffer.concat(chunks)))
+        res.on('end', () => {
+          clearTimeout(hardTimer)
+          resolve(Buffer.concat(chunks))
+        })
       }
     )
-    req.on('error', reject)
-    req.setTimeout(30000, () => req.destroy(new Error('HTTP_TIMEOUT')))
+    const hardTimer = setTimeout(() => req.destroy(new Error('HTTP_TIMEOUT')), left)
+    req.on('error', (e) => {
+      clearTimeout(hardTimer)
+      reject(e)
+    })
+    req.setTimeout(left, () => req.destroy(new Error('HTTP_TIMEOUT')))
+  })
+}
+
+/** 给一个已经发出去的 Promise 套一层超时。超时后原 Promise 继续跑完会被忽略，但要挂个 catch 免得变成未处理的 rejection。 */
+function withTimeout(promise, ms, code) {
+  const p = Promise.resolve(promise)
+  p.catch(() => {})
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(code || 'TIMEOUT')), ms)
+    p.then(
+      (v) => {
+        clearTimeout(t)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(t)
+        reject(e)
+      }
+    )
   })
 }
 
@@ -148,14 +203,17 @@ async function run(ev, viaHttp) {
 
   const started = Date.now()
   const budget = adapt.clampBudget(ev.budgetMs, BUDGET_MS)
+  // 真正的截止时刻：既听调用方的预算，也绝不允许逼近平台硬超时。
+  // 预算写超了（比如 BUDGET_MS=60000）也不会把函数拖死 —— 这里会被压到 60-6=54 秒。
+  const deadline = adapt.planDeadline(started, budget, HARD_TIMEOUT_MS, RESERVE_MS)
 
   // 1) 拉远端 manifest（发布在上游 Release 里的公开资产，不需要任何密钥）
   let remote
   try {
-    const buf = await fetchBuffer(assetUrl('manifest.json'))
+    const buf = await fetchBuffer(assetUrl('manifest.json'), deadline)
     remote = JSON.parse(buf.toString('utf8'))
   } catch (e) {
-    return { ok: false, error: 'FETCH_MANIFEST', message: String(e.message || e) }
+    return { ok: false, error: 'FETCH_MANIFEST', message: String(e.message || e), elapsedMs: Date.now() - started }
   }
   if (!remote || !remote.version || !Array.isArray(remote.shards)) {
     return { ok: false, error: 'BAD_MANIFEST' }
@@ -194,27 +252,47 @@ async function run(ev, viaHttp) {
     (s) => state.done.indexOf(s.path) < 0 && state.failed.indexOf(s.path) < 0
   )
   let uploaded = 0
+  let sinceCheckpoint = 0
 
-  // 4) 在时间预算内逐个搬
-  for (const shard of pending) {
-    if (Date.now() - started > budget) break
-
-    try {
-      const buf = await fetchBuffer(assetUrl(assetName(shard.path)))
-      if (shard.sha256 && sha256(buf) !== shard.sha256) throw new Error('SHA256_MISMATCH')
-      const up = await cloud.uploadFile({
-        cloudPath: `content/${remote.version}/${assetName(shard.path)}`,
-        fileContent: buf,
-      })
-      state.fileIDs[shard.path] = up.fileID
-      state.done.push(shard.path)
-      uploaded += 1
-    } catch (e) {
-      state.attempts[shard.path] = (state.attempts[shard.path] || 0) + 1
-      if (!state.failed.includes(shard.path)) state.failed.push(shard.path)
-      state.lastError = `${shard.path}: ${String(e.message || e)}`
+  // 4) 在截止时刻前尽量多搬。
+  //    * **并发 4 路**：单线程搬 183 个分片要 5 轮以上，并发后约 2 轮追平。
+  //    * 每个请求/每次上传的超时都按「离截止时刻还剩多少」收紧，
+  //      所以卡住的兄弟不可能把函数拖过 deadline。
+  //    * **每 CHECKPOINT_EVERY 个就落一次库**：万一还是被平台硬杀，
+  //      这一轮已搬完的不会白干（进度是断点续传的唯一依据，
+  //      原来只在整轮结束后写一次，被杀就整轮归零 ⇒ 永远超时、永远没进度）。
+  let cursor = 0
+  async function worker() {
+    while (cursor < pending.length && Date.now() < deadline) {
+      const shard = pending[cursor]
+      cursor += 1
+      try {
+        const buf = await fetchBuffer(assetUrl(assetName(shard.path)), deadline)
+        if (shard.sha256 && sha256(buf) !== shard.sha256) throw new Error('SHA256_MISMATCH')
+        const up = await withTimeout(
+          cloud.uploadFile({
+            cloudPath: `content/${remote.version}/${assetName(shard.path)}`,
+            fileContent: buf,
+          }),
+          Math.max(3000, Math.min(PER_REQUEST_MS, deadline - Date.now())),
+          'UPLOAD_TIMEOUT'
+        )
+        state.fileIDs[shard.path] = up.fileID
+        state.done.push(shard.path)
+        uploaded += 1
+      } catch (e) {
+        state.attempts[shard.path] = (state.attempts[shard.path] || 0) + 1
+        if (!state.failed.includes(shard.path)) state.failed.push(shard.path)
+        state.lastError = `${shard.path}: ${String(e.message || e)}`
+      }
+      sinceCheckpoint += 1
+      if (sinceCheckpoint >= CHECKPOINT_EVERY) {
+        sinceCheckpoint = 0
+        await putState(state).catch(() => {})
+      }
     }
   }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, worker))
 
   await putState(state)
 
@@ -229,7 +307,24 @@ async function run(ev, viaHttp) {
       uploadedTotal: state.done.length,
       failed: state.failed.length,
       remaining,
+      elapsedMs: Date.now() - started,
+      lastError: state.lastError || '',
       hint: '重复调用本函数直到 remaining 为 0',
+    }
+  }
+
+  // 4.5) 一片都没搬成（最典型的成因：云函数所在地域出网到 GitHub 的资产 CDN 不通，
+  //      每个分片都 HTTP_TIMEOUT）。这时**绝不能翻转** ——
+  //      翻了会把线上目录换成一份空壳 manifest，还不如保持旧版本可用。
+  //      直接把 lastError 回给调用方，用来判断是不是网络问题。
+  if (!state.done.length) {
+    return {
+      ok: false,
+      error: 'ALL_SHARDS_FAILED',
+      version: remote.version,
+      tried: state.failed.length,
+      elapsedMs: Date.now() - started,
+      lastError: state.lastError || '',
     }
   }
 
@@ -264,6 +359,7 @@ async function run(ev, viaHttp) {
     failed: state.failed.length,
     prevVersion: next.prevVersion,
     syncStatus: next.syncStatus,
+    elapsedMs: Date.now() - started,
   }
 }
 

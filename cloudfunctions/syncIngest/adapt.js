@@ -59,4 +59,31 @@ function clampBudget(value, fallback) {
   return Math.min(Math.max(n, MIN_BUDGET), MAX_BUDGET)
 }
 
-module.exports = { isHttpEvent, unwrapEvent, httpReply, clampBudget, MIN_BUDGET, MAX_BUDGET }
+/**
+ * 算出真正的「干活截止时刻」。
+ *
+ * 两层约束取更严的那个：
+ *   1) 调用方给的预算（Actions 可以传 budgetMs）；
+ *   2) 平台硬超时减去留白 —— 被平台硬杀时这一轮的进度就白干了，
+ *      所以无论预算写多大，都必须留出 reserveMs 用来写进度和返回。
+ *
+ * 这样即使环境变量 BUDGET_MS 被误设成 60000，
+ * 也不会把函数拖到 `Invoking task timed out after 60 seconds`。
+ */
+function planDeadline(startedAt, workMs, hardTimeoutMs, reserveMs) {
+  const hard = Number(hardTimeoutMs) || 60000
+  const reserve = Number(reserveMs) || 0
+  const cap = Math.max(1000, hard - reserve)
+  const work = Number(workMs) || 0
+  return Number(startedAt) + Math.min(work, cap)
+}
+
+module.exports = {
+  isHttpEvent,
+  unwrapEvent,
+  httpReply,
+  clampBudget,
+  planDeadline,
+  MIN_BUDGET,
+  MAX_BUDGET,
+}

@@ -90,5 +90,23 @@ ok('正常值原样保留', adapt.clampBudget(30000, 40000) === 30000)
 ok('字符串数字也接受', adapt.clampBudget('20000', 40000) === 20000)
 ok('上限必须小于云函数 60 秒硬超时', adapt.MAX_BUDGET < 60000)
 
+/* ------------------------------------------------ planDeadline：截止时刻绝不超过硬超时 */
+
+const HARD = 60000
+const RESERVE = 6000
+
+ok('预算小于上限时用预算', adapt.planDeadline(0, 40000, HARD, RESERVE) === 40000)
+ok('预算是上限附近时仍按预算', adapt.planDeadline(0, 50000, HARD, RESERVE) === 50000)
+ok('预算超过「硬超时-留白」时被压住', adapt.planDeadline(0, 55000, HARD, RESERVE) === 54000)
+ok('预算被误设成 60000 也不会撞硬超时', adapt.planDeadline(0, 60000, HARD, RESERVE) === 54000)
+ok('预算被误设成天文数字也不会', adapt.planDeadline(0, 999999999, HARD, RESERVE) === 54000)
+ok('起点非 0 时按相对量推进', adapt.planDeadline(1000, 40000, HARD, RESERVE) === 41000)
+ok('小预算原样保留', adapt.planDeadline(0, 5000, HARD, RESERVE) === 5000)
+ok('留白过大时至少留 1 秒，不会算成负数', adapt.planDeadline(0, 40000, 3000, 6000) === 1000)
+ok(
+  '任何情况下 截止时刻 + 留白 都不超过硬超时',
+  adapt.planDeadline(0, 1e9, HARD, RESERVE) + RESERVE <= HARD
+)
+
 console.log(failed ? `\n${failed} 项失败` : '\n全部通过')
 process.exit(failed ? 1 : 0)
