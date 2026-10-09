@@ -1,0 +1,345 @@
+/* ============================================================
+   设计系统
+   视觉方向：像一本被研究员逐条批注过的参考书 —— 结构本身就是信息。
+   颜色只承载语义，不做装饰：柏绿=证据A/主色，赭黄=证据B，石灰=证据C，
+   赭红只出现在「争议」「待核实」上。不存在内容里找不到出处的颜色。
+   字体分三段：宋体=内容，系统黑体=界面，等宽=一切数据与标签。
+   ============================================================ */
+
+page {
+  --paper: #F4F5F2;
+  --card: #FFFFFF;
+  --line: #E3E4DF;
+  --line2: #EDEEE9;
+  --ink: #191D1C;
+  --ink2: #5C635F;
+  --ink3: #8C918D;
+  --green: #2F5D50;
+  --green-bg: #EAF0EC;
+  --amber: #A9761B;
+  --amber-bg: #F7F0E2;
+  --gray: #8C918D;
+  --gray-bg: #EDEEEA;
+  --red: #9C3B2E;
+  --red-bg: #F6EAE7;
+  --tabbar-h: 108rpx;
+
+  --serif: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif CJK SC", serif;
+  --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  page {
+    --paper: #15181A;
+    --card: #1D2124;
+    --line: #2C3135;
+    --line2: #23282B;
+    --ink: #E9EBE9;
+    --ink2: #A9B0AB;
+    --ink3: #7B827D;
+    --green: #74AE98;
+    --green-bg: #1E2B27;
+    --amber: #D6A855;
+    --amber-bg: #2C2517;
+    --gray: #8C918D;
+    --gray-bg: #262A29;
+    --red: #D4796A;
+    --red-bg: #2E211E;
+  }
+}
+
+view, text, scroll-view, navigator { box-sizing: border-box; }
+
+/* ---------- 排版原子 ---------- */
+.serif { font-family: var(--serif); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.t1 { color: var(--ink); }
+.t2 { color: var(--ink2); }
+.t3 { color: var(--ink3); }
+.tg { color: var(--green); }
+.ta { color: var(--amber); }
+.tr { color: var(--red); }
+.f11 { font-size: 22rpx; }
+.f12 { font-size: 24rpx; }
+.f13 { font-size: 26rpx; }
+.f15 { font-size: 30rpx; }
+
+/* ---------- 页面骨架 ---------- */
+.page {
+  min-height: 100vh;
+  padding: 0 40rpx calc(var(--tabbar-h) + 40rpx);
+}
+.page--flat { padding-bottom: 40rpx; }
+
+/* 版式小标题：等宽大写，像标本标签上的注 */
+.label {
+  font-family: var(--mono);
+  font-size: 21rpx;
+  color: var(--ink3);
+  letter-spacing: .06em;
+  margin: 44rpx 0 18rpx;
+}
+.label:first-child { margin-top: 28rpx; }
+
+.hr { height: 1rpx; background: var(--line2); }
+.card {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+}
+
+/* ---------- 版本条 ---------- */
+.vbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+  padding: 22rpx 26rpx;
+  margin-top: 24rpx;
+}
+.vbar .l { font-family: var(--mono); font-size: 24rpx; color: var(--ink); }
+.vbar .r {
+  font-family: var(--mono); font-size: 21rpx; color: var(--ink3);
+  text-align: right; line-height: 1.5;
+}
+.vbar .dot {
+  display: inline-block; width: 12rpx; height: 12rpx; border-radius: 50%;
+  background: var(--green); margin-right: 12rpx; vertical-align: 2rpx;
+}
+.vbar .dot.stale { background: var(--amber); }
+.vbar .dot.off { background: var(--ink3); }
+
+/* ---------- 检索入口 ---------- */
+.searchbar {
+  height: 76rpx;
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 38rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 28rpx;
+  gap: 16rpx;
+  color: var(--ink3);
+  font-size: 28rpx;
+  margin-top: 24rpx;
+}
+.searchbar .ic {
+  width: 26rpx; height: 26rpx; border: 3rpx solid var(--ink3);
+  border-radius: 50%; position: relative; flex: none;
+}
+.searchbar .ic::after {
+  content: ""; position: absolute; right: -10rpx; bottom: -8rpx;
+  width: 12rpx; height: 3rpx; background: var(--ink3);
+  transform: rotate(45deg);
+}
+
+/* ---------- 节列表行 ---------- */
+.sectrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid var(--line2);
+}
+.sectrow .n {
+  font-family: var(--mono); font-size: 23rpx; color: var(--ink3);
+  width: 46rpx; flex: none; text-align: right; padding-top: 6rpx;
+}
+.sectrow .b { flex: 1; min-width: 0; }
+.sectrow .b .stt {
+  font-family: var(--serif); font-size: 32rpx; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+}
+.sectrow .b .ssum {
+  font-size: 23rpx; color: var(--ink3); margin-top: 8rpx; line-height: 1.55;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.sectrow .m {
+  font-family: var(--mono); font-size: 22rpx; color: var(--ink2);
+  flex: none; padding-top: 8rpx;
+}
+
+/* ---------- 条目标题 ---------- */
+.dtitle {
+  font-family: var(--serif); font-size: 44rpx; font-weight: 600;
+  line-height: 1.4; margin: 12rpx 0 20rpx;
+}
+.dbread {
+  font-family: var(--mono); font-size: 22rpx; color: var(--ink3);
+  margin-bottom: 30rpx;
+}
+
+/* 「说人话」——全站唯一一处左侧强调边，视觉最高位 */
+.dplain {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-left: 6rpx solid var(--green);
+  border-radius: 8rpx 20rpx 20rpx 8rpx;
+  padding: 30rpx 32rpx;
+  margin-bottom: 40rpx;
+}
+.dplain .k {
+  font-family: var(--mono); font-size: 20rpx; color: var(--green);
+  letter-spacing: .08em; display: block; margin-bottom: 16rpx;
+}
+.dplain .v {
+  font-family: var(--serif); font-size: 32rpx; line-height: 1.85; color: var(--ink);
+}
+
+/* 字段块 */
+.field { margin-bottom: 38rpx; }
+.field .k {
+  font-family: var(--mono); font-size: 21rpx; color: var(--ink3);
+  letter-spacing: .06em; display: block; margin-bottom: 12rpx;
+}
+.field .v { font-size: 28rpx; line-height: 1.8; color: var(--ink2); }
+.field .v .rich { color: var(--ink); }
+.field--src .v {
+  font-family: var(--mono); font-size: 23rpx; line-height: 1.7;
+  word-break: break-all;
+}
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12rpx;
+  height: 80rpx; padding: 0 36rpx; border-radius: 12rpx;
+  border: 1rpx solid var(--line); background: var(--card);
+  font-family: var(--mono); font-size: 24rpx; color: var(--ink2);
+}
+.btn--primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn--ghost { background: transparent; }
+.btn--block { display: flex; width: 100%; }
+.btn--on { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+/* ---------- 分段控件 ---------- */
+.seg {
+  display: flex; border: 1rpx solid var(--line); border-radius: 12rpx;
+  overflow: hidden; background: var(--card); margin: 24rpx 0;
+}
+.seg .s {
+  flex: 1; text-align: center; padding: 20rpx 0;
+  font-family: var(--mono); font-size: 24rpx; color: var(--ink3);
+}
+.seg .s.on { background: var(--green-bg); color: var(--green); }
+
+/* ---------- 标签（筛选片） ---------- */
+.chip {
+  display: inline-block; padding: 12rpx 26rpx; margin: 0 16rpx 16rpx 0;
+  border: 1rpx solid var(--line); border-radius: 999rpx;
+  font-family: var(--mono); font-size: 22rpx; color: var(--ink2);
+  background: var(--card);
+}
+.chip.on { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+/* ---------- 空态 ---------- */
+.empty {
+  padding: 120rpx 0; text-align: center;
+}
+.empty .h {
+  font-family: var(--serif); font-size: 30rpx; color: var(--ink2);
+  margin-bottom: 14rpx;
+}
+.empty .p { font-size: 24rpx; color: var(--ink3); line-height: 1.7; }
+
+/* ---------- 免责声明 ---------- */
+.disclaimer {
+  font-size: 23rpx; color: var(--ink3); line-height: 1.7;
+  padding: 28rpx 0 0; border-top: 1rpx solid var(--line2); margin-top: 40rpx;
+}
+
+/* ---------- 加载 ---------- */
+.loading {
+  padding: 80rpx 0; text-align: center;
+  font-family: var(--mono); font-size: 23rpx; color: var(--ink3);
+}
+
+/* ============================================================
+   mp-html 渲染区
+   mp-html 的 node 组件开了 addGlobalClass，下面这些规则才穿得进去。
+   两处必须补的：
+     1) ._table 本身没有 display:table，不补表格会塌成一行；
+     2) 引用链接要 dashed 下划线，得压过组件自带的 ._a 颜色。
+   选择器都写成 .mp-body xxx（两个类）以保证压过组件内部同名规则。
+   ============================================================ */
+.mp-body { font-family: var(--serif); }
+.mp-body ._p { display: block; margin: 0 0 14rpx; }
+.mp-body ._p:last-child { margin-bottom: 0; }
+
+.mp-body ._table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20rpx 0;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: 23rpx;
+}
+.mp-body ._thead, .mp-body ._tbody { display: table-row-group; }
+.mp-body ._tr { display: table-row; }
+.mp-body ._th, .mp-body ._td {
+  display: table-cell;
+  border: 1rpx solid var(--line);
+  padding: 12rpx 14rpx;
+  vertical-align: top;
+  line-height: 1.6;
+  color: var(--ink2);
+}
+.mp-body ._th { font-weight: 600; background: var(--gray-bg); color: var(--ink); text-align: left; }
+
+.mp-body ._ul, .mp-body ._ol { display: block; padding-left: 34rpx; margin: 14rpx 0; }
+.mp-body ._li { display: list-item; margin: 8rpx 0; }
+
+.mp-body ._h1, .mp-body ._h2, .mp-body ._h3, .mp-body ._h4 {
+  display: block; font-family: var(--serif); font-weight: 600;
+  color: var(--ink); margin: 34rpx 0 14rpx; line-height: 1.45;
+}
+.mp-body ._h1 { font-size: 40rpx; }
+.mp-body ._h2 { font-size: 34rpx; }
+.mp-body ._h3 { font-size: 30rpx; }
+.mp-body ._h4 { font-size: 28rpx; }
+
+.mp-body ._blockquote {
+  display: block;
+  border-left: 4rpx solid var(--line);
+  padding-left: 20rpx;
+  margin: 16rpx 0;
+  color: var(--ink2);
+}
+.mp-body .md-hr { border: none; border-top: 1rpx solid var(--line); margin: 30rpx 0; }
+
+/* 交叉引用：带虚线的指路，点一下跳到那一条 */
+.mp-body .ref {
+  color: var(--green);
+  border-bottom: 1rpx dashed var(--green);
+  padding-bottom: 1rpx;
+}
+/* 术语：点一下弹释义 */
+.mp-body .gl {
+  color: var(--ink);
+  border-bottom: 1rpx dashed var(--ink3);
+  padding-bottom: 1rpx;
+}
+/* 来源里的外链：等宽、可换行 */
+.mp-body .ext {
+  color: var(--ink3);
+  font-family: var(--mono);
+  font-size: 22rpx;
+  word-break: break-all;
+}
+.mp-body code {
+  font-family: var(--mono);
+  font-size: 24rpx;
+  background: var(--gray-bg);
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
+}
+.mp-body b { font-weight: 600; }

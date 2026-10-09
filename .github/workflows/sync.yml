@@ -1,0 +1,113 @@
+name: 同步上游内容
+
+# 每天定时构建一次，产出新的内容版本并推到云存储。
+# 小程序端不需要发版 —— 它启动时问一次 getVersion，版本变了就切到新版分片。
+on:
+  schedule:
+    # UTC 21:17 = 北京时间 05:17，避开整点的高峰队列
+    - cron: '17 21 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 忽略「同一 commit 就跳过」，强制重新入云
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    # 构建逻辑或工作流本身变了才重跑，避免每次改前端都触发
+    paths:
+      - 'build/**'
+      - '.github/workflows/sync.yml'
+
+permissions:
+  contents: write # 发布 Release 需要
+
+# 内容同步不能并跑：两次同时翻转 manifest 会互相打架
+concurrency:
+  group: content-sync
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: '1'
+  RELEASE_TAG: content-latest
+  UPSTREAM_REPO: eternity4719/HowToLiveBetter
+  # 云函数 HTTP 访问服务地址，在仓库 Settings → Variables 里配
+  SYNC_URL: ${{ vars.SYNC_URL }}
+  SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 小程序静态完整性检查
+        run: python build/check_miniprogram.py
+
+      - name: 拉取上游最新内容
+        run: python build/fetch_upstream.py
+
+      - name: 解析构建（含 README 统计自校验）
+        run: python build/parse.py
+
+      - name: 检索/合并逻辑单测
+        run: |
+          node build/tests/test_search.js
+          node build/tests/test_merge.js
+
+      - name: 校验并摊平 Release 资产
+        run: python build/stage_release.py
+
+      - name: 发布 Release 资产
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --title "内容资产（自动发布）" \
+              --notes "由 GitHub Actions 自动发布。资产名 = 分片相对路径把 / 换成 __，例如 book/01.json → book__01.json。"
+          fi
+          # 只上传本次构建产出的资产；--clobber 覆盖同名旧资产
+          gh release upload "$RELEASE_TAG" release/* --clobber
+
+      - name: 触发云端入云
+        if: env.SYNC_URL != ''
+        env:
+          SYNC_FORCE: ${{ inputs.force && '1' || '' }}
+        run: python build/trigger_sync.py
+
+      - name: 未配置 SYNC_URL 的提示
+        if: env.SYNC_URL == ''
+        run: |
+          echo "::warning::未配置仓库变量 SYNC_URL，已跳过云端入云。Release 资产已发布，配置后再跑一次即可。"
+
+      - name: 构建结果摘要
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          p = pathlib.Path("dist/manifest.json")
+          if not p.exists():
+              print("构建产物缺失")
+              raise SystemExit
+          m = json.loads(p.read_text(encoding="utf-8"))
+          c, s = m.get("counts", {}), m.get("stats", {})
+          print("## 内容版本")
+          print()
+          print(f"- 版本：`{m.get('version')}`（上游 `{str(m.get('commit'))[:7]}`，提交于 {m.get('commitDate')}）")
+          print(f"- 条目：{c.get('items')} 条 / {c.get('sections')} 节；长文 {c.get('docs')} 篇；核实记录 {c.get('verify')} 篇")
+          print(f"- 引用：{c.get('refs')} 处，失效 {c.get('brokenRefs')}")
+          print(f"- 证据：A {s.get('evidence', {}).get('A')} / B {s.get('evidence', {}).get('B')} / C {s.get('evidence', {}).get('C')}")
+          print(f"- 性价比：极高 {s.get('tier', {}).get('极高')} / 高 {s.get('tier', {}).get('高')} / 一般 {s.get('tier', {}).get('一般')}")
+          print(f"- 分片：{len(m.get('shards', []))} 个")
+          PY

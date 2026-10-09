@@ -1,0 +1,5 @@
+<!-- 证据徽章。A/B/C 用三档明度递降，不用红黄绿灯 ——
+     这不是「好/中/差」，只是证据强度不同。 -->
+<view class="eb eb--{{level}} {{light ? 'is-light' : ''}} {{sm ? 'is-sm' : ''}}">
+  <text>{{level}}</text>
+</view>

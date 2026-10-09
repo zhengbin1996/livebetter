@@ -1,0 +1,57 @@
+<view class="loading" wx:if="{{loading}}">正在取这一节…</view>
+
+<view class="empty" wx:elif="{{offline}}">
+  <view class="h serif">这一节还没存到本机</view>
+  <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
+  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+</view>
+
+<view class="page page--flat" wx:else>
+  <view class="shead">
+    <view class="sn mono">{{sec}}</view>
+    <view class="st serif">{{secTitle}}</view>
+    <view class="sc mono">{{items.length}} 条 · 按性价比从高到低</view>
+  </view>
+
+  <!-- 节首导读：里头的交叉引用同样可点 -->
+  <view class="intro" wx:if="{{introLen}}">
+    <mp-html
+      class="mp-body"
+      content="{{intro}}"
+      copy-link="{{false}}"
+      bindlinktap="onLinkTap"
+    />
+  </view>
+
+  <!-- 分组导览：点一下滚到该组首条 -->
+  <view class="gnav" wx:if="{{groups.length}}">
+    <view class="gblock" wx:for="{{groups}}" wx:for-item="g" wx:key="label">
+      <text class="gl">{{g.label}}</text>
+      <view class="gitems">
+        <text
+          class="gi"
+          wx:for="{{g.items}}"
+          wx:for-item="gi"
+          wx:key="num"
+          data-num="{{gi.num}}"
+          bindtap="goGroup"
+        >{{gi.num}} {{gi.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 条目清单 -->
+  <item-row
+    wx:for="{{items}}"
+    wx:key="sid"
+    id="i{{item.num}}"
+    item="{{item}}"
+    label-map="{{labelMap}}"
+    fav="{{item.fav}}"
+    bindtapitem="goItem"
+  />
+
+  <view class="disclaimer">本内容为生活建议，不构成医疗建议或法律意见；就医请遵医嘱。</view>
+</view>
+
+<gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />

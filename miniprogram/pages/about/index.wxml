@@ -1,0 +1,96 @@
+<view class="page">
+  <view class="masthead">
+    <view class="bk serif">{{bookName}}</view>
+    <view class="sub">微信小程序版 · 内容每天从上游仓库自动同步</view>
+    <view class="ver mono">{{info.version || '—'}}</view>
+  </view>
+
+  <view class="label">内容版本</view>
+  <view class="kv">
+    <view class="kvrow"><text class="k">版本号</text><text class="v mono">{{info.version || '—'}}</text></view>
+    <view class="kvrow"><text class="k">上游提交</text><text class="v mono">{{info.commit ? info.commit.slice(0,10) : '—'}}</text></view>
+    <view class="kvrow"><text class="k">上游提交日</text><text class="v mono">{{info.upstreamDate ? info.upstreamDate.slice(0,10) : '—'}}</text></view>
+    <view class="kvrow"><text class="k">本机上次同步</text><text class="v mono">{{info.syncedAt ? info.syncedAt.slice(0,16) : '尚未同步'}}</text></view>
+    <view class="kvrow"><text class="k">内容量</text><text class="v mono">{{counts.items}} 条 · {{counts.sections}} 节</text></view>
+    <view class="kvrow"><text class="k">离线已存</text><text class="v mono">{{cacheText}}</text></view>
+  </view>
+  <view class="rowcard" bindtap="goVersion">
+    <view class="rc-l">
+      <view class="rc-h serif">版本与更新 · 同步历史</view>
+      <view class="rc-p">看这一版更新了什么、缓存占用多少</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+
+  <view class="label">读这本书前先知道</view>
+  <view class="rowcard" bindtap="goLegend">
+    <view class="rc-l">
+      <view class="rc-h serif">证据等级和性价比档怎么读</view>
+      <view class="rc-p">A/B/C 说的是数字可不可信；性价比档说的是值不值得做，两者互不影响</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+  <view class="rowcard" bindtap="goGlossary">
+    <view class="rc-l">
+      <view class="rc-h serif">术语表</view>
+      <view class="rc-p">HR、RR、95% CI、荟萃分析、RCT…</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+  <view class="rowcard" bindtap="goVerify">
+    <view class="rc-l">
+      <view class="rc-h serif">来源核实记录</view>
+      <view class="rc-p">每条数字是怎么跟原文对上的</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+
+  <!-- CC BY 4.0 署名三条件：出处、许可证链接、改动说明。缺一不可。 -->
+  <view class="label">版权与许可</view>
+  <view class="lic">
+    <view class="lic-h serif">署名要求（CC BY 4.0 的三个条件）</view>
+
+    <view class="lic-item">
+      <text class="li-n mono">01</text>
+      <view class="li-b">
+        <text class="li-t">写明出处</text>
+        <text class="li-d">{{license.attribution}}</text>
+        <text class="li-link mono" bindtap="copyRepo">复制仓库链接</text>
+      </view>
+    </view>
+
+    <view class="lic-item">
+      <text class="li-n mono">02</text>
+      <view class="li-b">
+        <text class="li-t">附上许可证链接</text>
+        <text class="li-d">{{licenseName}} · 可转载、改编、商用，不用另行询问作者</text>
+        <text class="li-link mono" bindtap="copyLicense">复制许可证链接</text>
+      </view>
+    </view>
+
+    <view class="lic-item">
+      <text class="li-n mono">03</text>
+      <view class="li-b">
+        <text class="li-t">改过的要写明改过</text>
+        <text class="li-d">{{license.modifications}}</text>
+      </view>
+    </view>
+
+    <view class="lic-foot">
+      文字内容的著作权归原作者所有，本程序不是原始发布方。
+      代码部分以 MIT 许可发布。
+    </view>
+  </view>
+
+  <view class="label">免责</view>
+  <view class="disc">
+    <text>{{disclaimer}}</text>
+    <text>书中引用的死亡率、发病率等数字是研究结论，不是对个人的承诺；同样的相对降幅，落到不同基线风险的人身上，绝对收益差别很大。政策、补贴标准、法条和截止日期会变，涉及具体金额和期限时请自行核对当期官方口径。</text>
+  </view>
+
+  <view class="btn btn--block" bindtap="onSync">{{busy ? '正在同步…' : '立即检查内容更新'}}</view>
+
+  <view class="footer mono">
+    {{appName}} · 内容版本 {{info.version || '—'}}
+  </view>
+</view>

@@ -1,0 +1,46 @@
+.dhead { padding: 32rpx 0 26rpx; border-bottom: 1rpx solid var(--line); }
+.dhead .dh-t {
+  font-family: var(--serif);
+  font-size: 46rpx;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.dhead .dh-m {
+  font-size: 21rpx;
+  color: var(--ink3);
+  margin-top: 14rpx;
+}
+
+.tocbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  font-size: 22rpx;
+  color: var(--ink2);
+}
+.tocbar text { font-family: var(--mono); }
+
+.toc {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 10rpx 24rpx;
+  margin-bottom: 12rpx;
+}
+.toc .tocrow {
+  padding: 18rpx 0;
+  font-size: 26rpx;
+  color: var(--ink2);
+  border-bottom: 1rpx solid var(--line2);
+  line-height: 1.5;
+}
+.toc .tocrow:last-child { border-bottom: none; }
+.toc .tocrow--l2 { padding-left: 28rpx; font-size: 24rpx; color: var(--ink3); }
+
+.docbody {
+  padding-top: 20rpx;
+  font-size: 29rpx;
+  line-height: 1.85;
+  color: var(--ink);
+}

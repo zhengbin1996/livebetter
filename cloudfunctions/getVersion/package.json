@@ -1,0 +1,9 @@
+{
+  "name": "getVersion",
+  "version": "1.0.0",
+  "description": "返回当前内容版本 manifest",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

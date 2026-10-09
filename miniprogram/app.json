@@ -1,0 +1,65 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/search/index",
+    "pages/checkin/index",
+    "pages/about/index",
+    "pages/section-list/index",
+    "pages/item-detail/index"
+  ],
+  "subPackages": [
+    {
+      "root": "subpackages/read",
+      "name": "read",
+      "pages": [
+        "pages/section-detail/index",
+        "pages/doc-read/index",
+        "pages/verify-read/index"
+      ]
+    },
+    {
+      "root": "subpackages/mine",
+      "name": "mine",
+      "pages": [
+        "pages/glossary/index",
+        "pages/version/index"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "wifi",
+      "packages": ["read"]
+    },
+    "pages/section-list/index": {
+      "network": "wifi",
+      "packages": ["read"]
+    }
+  },
+  "window": {
+    "navigationBarBackgroundColor": "@navBgColor",
+    "navigationBarTitleText": "高性价比人生指南",
+    "navigationBarTextStyle": "@navTxtStyle",
+    "backgroundColor": "@bgColor",
+    "backgroundTextStyle": "@bgTxtStyle",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "@tabColor",
+    "selectedColor": "@tabSelectedColor",
+    "backgroundColor": "@tabBgColor",
+    "borderStyle": "@tabBorderColor",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "指南" },
+      { "pagePath": "pages/search/index", "text": "检索" },
+      { "pagePath": "pages/checkin/index", "text": "清单" },
+      { "pagePath": "pages/about/index", "text": "关于" }
+    ]
+  },
+  "darkmode": true,
+  "themeLocation": "theme.json",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2"
+}

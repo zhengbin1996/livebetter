@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "mp-html": "../../../../components/mp-html/index",
+    "item-row": "../../../../components/item-row/index",
+    "gloss-pop": "../../../../components/gloss-pop/index"
+  },
+  "navigationBarTitleText": "阅读"
+}

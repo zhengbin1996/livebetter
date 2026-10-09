@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "mp-html": "../../components/mp-html/index",
+    "cost-tag": "../../components/cost-tag/index",
+    "ev-badge": "../../components/ev-badge/index",
+    "tier-meter": "../../components/tier-meter/index",
+    "gloss-pop": "../../components/gloss-pop/index"
+  },
+  "navigationBarTitleText": "条目"
+}

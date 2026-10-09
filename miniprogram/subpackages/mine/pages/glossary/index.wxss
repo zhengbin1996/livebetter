@@ -1,0 +1,96 @@
+.searchbar .sinput { flex: 1; font-size: 28rpx; color: var(--ink); height: 100%; }
+.searchbar .sph { color: var(--ink3); }
+.searchbar .clr { font-size: 22rpx; color: var(--ink3); padding-left: 8rpx; }
+
+/* 术语表 */
+.tlist {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+.tlist .trow {
+  padding: 24rpx 26rpx;
+  border-bottom: 1rpx solid var(--line2);
+}
+.tlist .trow:last-child { border-bottom: none; }
+.tlist .tr-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+.tlist .tr-t { font-size: 28rpx; font-weight: 600; color: var(--green); }
+.tlist .tr-x { font-size: 20rpx; flex: none; }
+.tlist .tr-b {
+  font-family: var(--serif);
+  font-size: 27rpx;
+  line-height: 1.8;
+  color: var(--ink2);
+  margin-top: 16rpx;
+}
+
+/* 标注释义 */
+.cardbox {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 24rpx 26rpx;
+  margin-bottom: 20rpx;
+}
+.cardbox .resnote { margin-top: 18rpx; font-size: 25rpx; color: var(--ink2); }
+
+.res { display: flex; gap: 16rpx; padding: 8rpx 0; }
+.res .res-n { flex: none; width: 150rpx; font-size: 27rpx; font-weight: 600; color: var(--ink); }
+.res .res-d { flex: 1; font-size: 25rpx; color: var(--ink2); line-height: 1.6; }
+
+.evrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 12rpx 0;
+}
+.evrow .ev-m { flex: 1; font-size: 26rpx; line-height: 1.7; color: var(--ink2); }
+
+.minihead, .minir {
+  display: flex;
+  gap: 14rpx;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid var(--line2);
+}
+.minihead { border-bottom: 1rpx solid var(--line); }
+.minihead .mh,
+.minir .mc1 { flex: none; width: 140rpx; }
+.minir .mc2 { flex: none; width: 200rpx; }
+.minir .mc3 { flex: 1; }
+.minihead .mh {
+  font-family: var(--mono);
+  font-size: 20rpx;
+  color: var(--ink3);
+  letter-spacing: .04em;
+}
+.minir .mc1 { font-size: 25rpx; color: var(--ink); font-weight: 600; }
+.minir .mc2, .minir .mc3 { font-size: 24rpx; color: var(--ink2); line-height: 1.6; }
+
+.tagrow {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid var(--line2);
+}
+.tagrow:last-child { border-bottom: none; }
+.tagrow .tg-k { flex: none; width: 80rpx; font-size: 24rpx; color: var(--ink); }
+.tagrow .tg-v { flex: 1; font-size: 25rpx; color: var(--ink2); }
+
+.howrow { padding: 18rpx 0; border-bottom: 1rpx solid var(--line2); }
+.howrow:last-child { border-bottom: none; }
+.howrow .hw-h {
+  display: block;
+  font-family: var(--serif);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10rpx;
+}
+.howrow .hw-b { font-size: 25rpx; color: var(--ink2); line-height: 1.75; }

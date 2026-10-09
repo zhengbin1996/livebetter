@@ -1,0 +1,21 @@
+.tw { display: inline-flex; align-items: center; gap: 10rpx; }
+.tier { display: inline-flex; gap: 5rpx; }
+.tier .i {
+  display: block;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 3rpx;
+  background: var(--line);
+  border: 1rpx solid var(--line);
+}
+.tier.is-sm .i { width: 10rpx; height: 10rpx; }
+
+.tier--极高 .i.f { background: var(--green); border-color: var(--green); }
+.tier--高 .i.f { background: var(--amber); border-color: var(--amber); }
+.tier--一般 .i.f { background: var(--gray); border-color: var(--gray); }
+
+.ttl {
+  font-family: var(--mono);
+  font-size: 22rpx;
+  color: var(--ink3);
+}

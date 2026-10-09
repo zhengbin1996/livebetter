@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "mp-html": "../../../../components/mp-html/index",
+    "ev-badge": "../../../../components/ev-badge/index"
+  },
+  "navigationBarTitleText": "术语与标注"
+}

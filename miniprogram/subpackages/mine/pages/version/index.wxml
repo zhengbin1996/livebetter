@@ -1,0 +1,62 @@
+<view class="page page--flat">
+  <view class="verbox">
+    <view class="vb-k mono">当前内容版本</view>
+    <view class="vb-v mono">{{info.version || '—'}}</view>
+    <view class="vb-s mono" bindtap="copyCommit">
+      上游 commit {{info.commit ? info.commit.slice(0,10) : '—'}} · 点一下复制
+    </view>
+  </view>
+
+  <view class="label">时间</view>
+  <view class="kv">
+    <view class="kvrow"><text class="k">上游提交时间</text><text class="v mono">{{upText}}</text></view>
+    <view class="kvrow"><text class="k">内容包生成时间</text><text class="v mono">{{genText}}</text></view>
+    <view class="kvrow"><text class="k">本机上次同步</text><text class="v mono">{{syncText}}</text></view>
+    <view class="kvrow"><text class="k">同步状态</text><text class="v mono">{{info.syncState}}</text></view>
+  </view>
+
+  <view class="btnrow">
+    <view class="btn {{busy ? '' : 'btn--primary'}}" bindtap="onSync">{{busy ? '正在同步…' : '立即检查更新'}}</view>
+  </view>
+
+  <view class="label">这一版有多少东西</view>
+  <view class="kv">
+    <view class="kvrow"><text class="k">建议条数</text><text class="v mono">{{counts.items}}</text></view>
+    <view class="kvrow"><text class="k">节数</text><text class="v mono">{{counts.sections}}</text></view>
+    <view class="kvrow"><text class="k">长文 / 核实记录</text><text class="v mono">{{counts.docs}} / {{counts.verify}}</text></view>
+    <view class="kvrow"><text class="k">交叉引用（失效）</text><text class="v mono">{{counts.refs}}（{{counts.brokenRefs}}）</text></view>
+    <view class="kvrow" wx:if="{{stats}}"><text class="k">证据 A / B / C</text><text class="v mono">{{stats.evidence.A}} / {{stats.evidence.B}} / {{stats.evidence.C}}</text></view>
+    <view class="kvrow" wx:if="{{stats}}"><text class="k">性价比 极高 / 高 / 一般</text><text class="v mono">{{stats.tier['极高']}} / {{stats.tier['高']}} / {{stats.tier['一般']}}</text></view>
+    <view class="kvrow" wx:if="{{stats}}"><text class="k">标注争议 / 待核实</text><text class="v mono">{{stats.dispute}} / {{stats.todo}}</text></view>
+  </view>
+
+  <view class="label">离线内容</view>
+  <view class="kv">
+    <view class="kvrow"><text class="k">已缓存</text><text class="v mono">{{cacheText}}</text></view>
+  </view>
+
+  <view class="dl" wx:if="{{downBusy}}">
+    <view class="dl-h mono"><text>下载中 · {{progress.text}}</text><text>{{progress.percent}}%</text></view>
+    <view class="bar"><view class="fill" style="width:{{progress.percent}}%"></view></view>
+    <view class="dl-p mono t3">{{progress.size}}</view>
+  </view>
+
+  <view class="btnrow">
+    <view class="btn" bindtap="onDownload" wx:if="{{!downBusy}}">{{cache.complete ? '重新校验全书' : '下载全书'}}</view>
+    <view class="btn" bindtap="onPrune">清理旧版本</view>
+    <view class="btn" bindtap="onClear">清空缓存</view>
+  </view>
+
+  <view class="label" wx:if="{{history.length}}">同步历史</view>
+  <view class="kv" wx:if="{{history.length}}">
+    <view class="kvrow" wx:for="{{history}}" wx:key="at">
+      <text class="k mono">{{item.version}}</text>
+      <text class="v mono">{{item.atText}}</text>
+    </view>
+  </view>
+
+  <view class="disclaimer">
+    内容每天从上游仓库自动同步。版本号里的日期是上游提交日，不是同步日；
+    同一份内容可能被同步多次，所以权威标识是 40 位的 commit sha。
+  </view>
+</view>

@@ -1,0 +1,68 @@
+<view class="page">
+  <view class="seg">
+    <view class="s {{tab === 'checkin' ? 'on' : ''}}" data-tab="checkin" bindtap="switchTab">要做的</view>
+    <view class="s {{tab === 'fav' ? 'on' : ''}}" data-tab="fav" bindtap="switchTab">收藏</view>
+  </view>
+
+  <!-- 打卡进度 -->
+  <view class="prog" wx:if="{{tab === 'checkin' && total > 0}}">
+    <view class="pg-h">
+      <text class="pg-n serif">{{done}} / {{total}}</text>
+      <text class="pg-p mono">{{percent}}%</text>
+    </view>
+    <view class="bar"><view class="fill" style="width:{{percent}}%"></view></view>
+    <view class="pg-note">
+      这本书的用法是「挑一两条先做」，不是把 675 条做完。列在这里的才是你自己选的。
+    </view>
+  </view>
+
+  <view class="seg seg--sub" wx:if="{{tab === 'checkin' && total > 0}}">
+    <view class="s {{filter === 'all' ? 'on' : ''}}" data-f="all" bindtap="setFilter">全部</view>
+    <view class="s {{filter === 'todo' ? 'on' : ''}}" data-f="todo" bindtap="setFilter">还没做</view>
+    <view class="s {{filter === 'done' ? 'on' : ''}}" data-f="done" bindtap="setFilter">做到了</view>
+  </view>
+
+  <view class="label" wx:if="{{items.length}}">{{items.length}} 条</view>
+
+  <view class="clist" wx:if="{{items.length}}">
+    <view class="crow" wx:for="{{items}}" wx:key="sid">
+      <view class="cr-main" data-sid="{{item.sid}}" bindtap="goItem">
+        <view class="cr-h">
+          <text class="cr-sec mono">{{item.sec}} 节 · {{item.num}}</text>
+          <text class="cr-done mono" wx:if="{{item.checked}}">做到了</text>
+        </view>
+        <view class="cr-t serif {{item.checked ? 'is-done' : ''}}">{{item.title}}</view>
+        <view class="cr-p">{{item.preview}}</view>
+      </view>
+      <view class="cr-acts">
+        <text
+          class="cr-a mono {{item.checked ? 'on' : ''}}"
+          wx:if="{{tab === 'checkin'}}"
+          data-sid="{{item.sid}}"
+          catchtap="toggleDone"
+        >{{item.checked ? '✓' : '○'}}</text>
+        <text class="cr-a mono" data-sid="{{item.sid}}" catchtap="remove">✕</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{loading}}">
+    <view class="p mono">正在整理…</view>
+  </view>
+
+  <view class="empty" wx:else>
+    <view class="h serif">{{tab === 'checkin' ? '清单还是空的' : '还没有收藏'}}</view>
+    <view class="p">
+      在任一条建议的详情页底部点「加进清单」或「收藏」，就会出现在这里。<br />
+      数据存在你自己的账号下，换手机也在；断网时也能读能改。
+    </view>
+    <view class="btnrow">
+      <view class="btn btn--primary" bindtap="goSearch">去检索</view>
+      <view class="btn" bindtap="goSections">翻目录</view>
+    </view>
+  </view>
+
+  <view class="disclaimer">
+    清单位于你的 openid 下，不需要登录也不采集其他信息。断网时的修改会在联网后自动补传。
+  </view>
+</view>

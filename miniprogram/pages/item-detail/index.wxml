@@ -1,0 +1,122 @@
+<view class="loading" wx:if="{{loading}}">正在取这条…</view>
+
+<view class="empty" wx:elif="{{offline}}">
+  <view class="h serif">这条还没存到本机</view>
+  <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
+  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+</view>
+
+<block wx:else>
+  <view class="page page--flat">
+    <view class="dbread" bindtap="goSection">{{crumb}} ›</view>
+
+    <view class="dtitle">{{item.title}}</view>
+
+    <view class="flags" wx:if="{{item.dispute || item.todo}}">
+      <text class="flag flag--r" wx:if="{{item.dispute}}">争议</text>
+      <text class="flag flag--a" wx:if="{{item.todo}}">待核实</text>
+    </view>
+
+    <!-- 成本签：五格等宽表 -->
+    <cost-tag
+      tag="{{item.tag}}"
+      label-map="{{labelMap}}"
+      tappable="{{true}}"
+      bindcelltap="onCellTap"
+    />
+
+    <!-- 说人话：全站唯一一处左侧强调边，视觉最高位 -->
+    <view class="dplain">
+      <text class="k">说人话</text>
+      <view class="v">
+        <mp-html
+          class="mp-body"
+          content="{{plainHtml}}"
+          copy-link="{{false}}"
+          bindlinktap="onLinkTap"
+        />
+      </view>
+    </view>
+
+    <!-- 证据等级 + 性价比，两个正交标注并排 -->
+    <view class="marks">
+      <view class="mk">
+        <ev-badge level="{{item.evidenceLevel}}" />
+        <view class="mk-b">
+          <text class="mk-k mono">证据等级</text>
+          <text class="mk-v">{{evidenceText}}</text>
+        </view>
+      </view>
+      <view class="mk">
+        <tier-meter level="{{item.ratio}}" sm show-text="{{false}}" />
+        <view class="mk-b">
+          <text class="mk-k mono">性价比</text>
+          <text class="mk-v">{{item.ratio}} · 作者判断，非证据</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="field">
+      <text class="k">收益</text>
+      <view class="v">
+        <mp-html class="mp-body" content="{{benefitHtml}}" copy-link="{{false}}" bindlinktap="onLinkTap" />
+      </view>
+    </view>
+
+    <view class="field">
+      <text class="k">成本</text>
+      <view class="v">
+        <mp-html class="mp-body" content="{{costHtml}}" copy-link="{{false}}" bindlinktap="onLinkTap" />
+      </view>
+    </view>
+
+    <view class="field" wx:if="{{noteHtml}}">
+      <text class="k">备注</text>
+      <view class="v">
+        <mp-html class="mp-body" content="{{noteHtml}}" copy-link="{{false}}" bindlinktap="onLinkTap" />
+      </view>
+    </view>
+
+    <view class="field field--src">
+      <text class="k">来源 <text class="copy" bindtap="onCopySource">复制</text></text>
+      <view class="v">
+        <mp-html class="mp-body" content="{{sourceHtml}}" copy-link="{{false}}" bindlinktap="onLinkTap" />
+      </view>
+    </view>
+
+    <!-- 理解辅助：指出去哪儿、谁指过来 -->
+    <view class="label" wx:if="{{refsOut.length}}">这条还提到</view>
+    <view class="reflist" wx:if="{{refsOut.length}}">
+      <view class="refrow" wx:for="{{refsOut}}" wx:for-item="r" wx:key="toSid" data-sid="{{r.toSid}}" bindtap="goRef">
+        <text class="rr mono">{{r.toSec}} 节 · 第 {{r.toNum}} 条</text>
+        <text class="rt serif">{{r.targetTitle || r.label}}</text>
+      </view>
+    </view>
+
+    <view class="label" wx:if="{{refsIn.length}}">有 {{refsIn.length}} 条建议指向这里</view>
+    <view class="reflist" wx:if="{{refsIn.length}}">
+      <view class="refrow" wx:for="{{refsIn}}" wx:for-item="r" wx:key="sid" data-sec="{{r.sec}}" bindtap="goSec">
+        <text class="rr mono">{{r.sec}} 节 · 第 {{r.num}} 条</text>
+        <text class="rt mono">翻过去 ›</text>
+      </view>
+    </view>
+
+    <view class="disclaimer">
+      {{disclaimer}} 本条的归属：<text class="mono">{{item.sid}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作条 -->
+  <view class="actbar">
+    <view class="act" bindtap="onFav">
+      <text class="ai {{fav ? 'on' : ''}}">{{fav ? '★' : '☆'}}</text>
+      <text class="at {{fav ? 'on' : ''}}">{{fav ? '已收藏' : '收藏'}}</text>
+    </view>
+    <view class="act" bindtap="onCheckin">
+      <text class="ai {{checkin.done ? 'on' : ''}}">{{checkin.done ? '✓' : '＋'}}</text>
+      <text class="at {{checkin.done ? 'on' : ''}}">{{checkin.done ? '已记进清单' : '加进清单'}}</text>
+    </view>
+  </view>
+
+  <gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />
+</block>

@@ -1,0 +1,121 @@
+/* 书封区 */
+.masthead { padding: 32rpx 0 8rpx; }
+.masthead .bk {
+  font-family: var(--serif);
+  font-size: 54rpx;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: .01em;
+  color: var(--ink);
+}
+.masthead .tag {
+  font-size: 25rpx;
+  color: var(--ink2);
+  line-height: 1.75;
+  margin-top: 14rpx;
+}
+.masthead .stats {
+  font-size: 21rpx;
+  color: var(--ink3);
+  margin-top: 18rpx;
+  letter-spacing: .01em;
+}
+
+/* 检索输入 */
+.searchbar .sinput {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--ink);
+  height: 100%;
+}
+.searchbar .sph { color: var(--ink3); }
+
+/* 问题列表 */
+.label .w { color: var(--ink3); letter-spacing: 0; }
+
+.plist {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+.prow {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 26rpx 28rpx;
+  border-bottom: 1rpx solid var(--line2);
+}
+.prow:last-child { border-bottom: none; }
+.prow .q {
+  flex: 1;
+  font-size: 27rpx;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.prow .go {
+  flex: none;
+  font-size: 21rpx;
+  color: var(--ink3);
+  padding-top: 6rpx;
+}
+
+.more {
+  width: 100%;
+  margin-top: 20rpx;
+  height: 76rpx;
+}
+
+/* 行卡片 */
+.rowcard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 26rpx 28rpx;
+  margin-bottom: 16rpx;
+}
+.rowcard .rc-l { flex: 1; min-width: 0; }
+.rowcard .rc-h {
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.rowcard .rc-p {
+  font-size: 23rpx;
+  color: var(--ink3);
+  line-height: 1.6;
+  margin-top: 6rpx;
+}
+
+/* 下载进度 */
+.dl {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+}
+.dl .dl-h {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  color: var(--ink);
+  margin-bottom: 18rpx;
+}
+.dl .bar {
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: var(--line2);
+  overflow: hidden;
+}
+.dl .bar .fill {
+  height: 100%;
+  background: var(--green);
+  transition: width .25s ease;
+}
+.dl .dl-p { font-size: 21rpx; margin-top: 14rpx; }

@@ -1,0 +1,61 @@
+.verbox {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+  padding: 32rpx 28rpx;
+  margin-top: 32rpx;
+}
+.verbox .vb-k { font-size: 20rpx; color: var(--ink3); letter-spacing: .08em; }
+.verbox .vb-v {
+  font-size: 44rpx;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 12rpx 0 14rpx;
+  letter-spacing: .01em;
+}
+.verbox .vb-s { font-size: 21rpx; color: var(--ink3); }
+
+.kv {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 4rpx 26rpx;
+  margin-bottom: 20rpx;
+}
+.kvrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--line2);
+}
+.kvrow:last-child { border-bottom: none; }
+.kvrow .k { font-size: 26rpx; color: var(--ink2); flex: none; }
+.kvrow .v {
+  font-size: 25rpx;
+  color: var(--ink);
+  text-align: right;
+  word-break: break-all;
+}
+
+.btnrow { display: flex; flex-wrap: wrap; gap: 16rpx; margin-bottom: 8rpx; }
+.btnrow .btn { flex: 1; min-width: 200rpx; }
+
+.dl {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+}
+.dl .dl-h {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  color: var(--ink);
+  margin-bottom: 18rpx;
+}
+.dl .bar { height: 8rpx; border-radius: 4rpx; background: var(--line2); overflow: hidden; }
+.dl .bar .fill { height: 100%; background: var(--green); transition: width .25s ease; }
+.dl .dl-p { font-size: 21rpx; margin-top: 14rpx; }

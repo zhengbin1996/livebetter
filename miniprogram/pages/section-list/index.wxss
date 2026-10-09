@@ -1,0 +1,37 @@
+.searchbar .sinput {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--ink);
+  height: 100%;
+}
+.searchbar .sph { color: var(--ink3); }
+.searchbar .clr {
+  font-size: 22rpx;
+  color: var(--ink3);
+  padding-left: 8rpx;
+}
+
+/* 节行的右侧统计：两行等宽小字 */
+.sectrow .m {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6rpx;
+}
+.sectrow .m .l1 { font-family: var(--mono); font-size: 22rpx; color: var(--ink2); }
+.sectrow .m .l2 { font-family: var(--mono); font-size: 19rpx; color: var(--ink3); }
+
+/* 分组导览标签 */
+.mtags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+.mtags .gtag {
+  font-size: 19rpx;
+  color: var(--ink3);
+  background: var(--gray-bg);
+  border-radius: 6rpx;
+  padding: 3rpx 12rpx;
+}

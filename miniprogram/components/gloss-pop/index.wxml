@@ -1,0 +1,17 @@
+<!-- 术语释义气泡：从底部升起。释义来自内置 essentials，离线可用。
+     正文里带虚线的术语点一下就弹这个。 -->
+<view class="mask {{show ? 'on' : ''}}" bindtap="onClose" catchtouchmove="noop">
+  <view class="sheet {{show ? 'on' : ''}}" catchtap="noop">
+    <view class="grab"></view>
+    <view class="head">
+      <text class="term">{{entry.term}}</text>
+      <text class="close" bindtap="onClose">关闭</text>
+    </view>
+    <view class="body">
+      <text>{{entry.meaning}}</text>
+    </view>
+    <view class="foot" wx:if="{{entry.term}}">
+      <text class="path">术语表 · 也可在「关于 → 术语表」里查全部 {{total}} 条</text>
+    </view>
+  </view>
+</view>

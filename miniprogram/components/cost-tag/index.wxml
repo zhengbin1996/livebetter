@@ -1,0 +1,8 @@
+<!-- 成本签：仿标本签 / 营养成分表的五格等宽表。
+     列表页和详情页共用同一个组件，只换 size。 -->
+<view class="cost cost--{{size}}">
+  <view class="c" wx:for="{{cells}}" wx:key="k">
+    <text class="k">{{item.k}}</text>
+    <text class="v {{item.tone === 'g' ? 'is-g' : ''}}">{{item.v}}</text>
+  </view>
+</view>

@@ -1,0 +1,12 @@
+<!-- 版本条：常驻首页顶部。左边是内容版本号，右边是上游提交日与本机同步时间。
+     状态点：绿=与云端一致，赭黄=云端有新版本（正文按需下载），灰=离线/未连上。 -->
+<view class="vbar" bindtap="onTap">
+  <view class="l">
+    <text class="dot {{stateClass}}"></text>
+    <text>{{info.version || '—'}}</text>
+  </view>
+  <view class="r">
+    <text class="ln">上游 {{upDate}}</text>
+    <text class="ln">同步 {{syncTime}}</text>
+  </view>
+</view>

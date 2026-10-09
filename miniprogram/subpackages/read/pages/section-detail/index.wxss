@@ -1,0 +1,53 @@
+.shead { padding: 32rpx 0 26rpx; border-bottom: 1rpx solid var(--line); }
+.shead .sn {
+  font-size: 22rpx;
+  color: var(--ink3);
+  letter-spacing: .1em;
+}
+.shead .st {
+  font-family: var(--serif);
+  font-size: 48rpx;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 10rpx;
+}
+.shead .sc {
+  font-size: 21rpx;
+  color: var(--ink3);
+  margin-top: 14rpx;
+}
+
+.intro {
+  padding: 28rpx 0 4rpx;
+  font-size: 28rpx;
+  line-height: 1.85;
+  color: var(--ink2);
+}
+
+/* 分组导览 */
+.gnav {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 8rpx 26rpx;
+  margin: 32rpx 0 20rpx;
+}
+.gnav .gblock { padding: 20rpx 0; border-bottom: 1rpx solid var(--line2); }
+.gnav .gblock:last-child { border-bottom: none; }
+.gnav .gl {
+  display: block;
+  font-family: var(--mono);
+  font-size: 21rpx;
+  color: var(--ink3);
+  letter-spacing: .06em;
+  margin-bottom: 12rpx;
+}
+.gnav .gitems { display: flex; flex-wrap: wrap; gap: 10rpx; }
+.gnav .gi {
+  font-size: 23rpx;
+  color: var(--ink2);
+  background: var(--gray-bg);
+  border-radius: 8rpx;
+  padding: 6rpx 14rpx;
+  line-height: 1.5;
+}

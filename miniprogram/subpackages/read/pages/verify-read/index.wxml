@@ -1,0 +1,65 @@
+<!-- 列表态 -->
+<block wx:if="{{!sid}}">
+  <view class="page page--flat">
+    <view class="topnote">
+      这 {{list.length}} 篇是逐条来源的核对过程：查了哪篇原文、数字对没对上、为什么改过。
+      想在引用上较真的话看这里。
+    </view>
+
+    <view class="searchbar">
+      <view class="ic"></view>
+      <input
+        class="sinput"
+        value="{{q}}"
+        placeholder="搜文件名里的事，比如「低钠盐」"
+        placeholder-class="sph"
+        confirm-type="search"
+        bindinput="onInput"
+      />
+      <text class="clr mono" wx:if="{{q}}" bindtap="clearQ">清</text>
+    </view>
+
+    <view class="label">{{filtered.length}} 篇</view>
+    <view class="vlist">
+      <view class="vrow" wx:for="{{filtered}}" wx:key="sid" data-sid="{{item.sid}}" bindtap="open">
+        <view class="vr-l">
+          <view class="vr-t serif">{{item.title}}</view>
+          <view class="vr-f mono">{{item.name}}</view>
+        </view>
+        <text class="mono t3">{{item.chars}} 字</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 阅读态 -->
+<block wx:else>
+  <view class="loading" wx:if="{{loading}}">正在取这篇…</view>
+  <view class="empty" wx:elif="{{offline}}">
+    <view class="h serif">这篇还没存到本机</view>
+    <view class="p">连上网，或者在首页点「下载全书」</view>
+    <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+  </view>
+  <view class="page page--flat" wx:else>
+    <view class="back" bindtap="backList">‹ 全部核实记录</view>
+    <view class="dhead">
+      <view class="dh-t serif">{{doc.title}}</view>
+      <view class="dh-m mono">{{doc.chars}} 字 · {{doc.name}}</view>
+    </view>
+
+    <view class="tocbar" bindtap="toggleToc" wx:if="{{doc.toc.length}}">
+      <text class="mono">查看结构</text>
+      <text class="mono t3">{{tocOpen ? '收起' : '展开'}}</text>
+    </view>
+    <view class="toc" wx:if="{{tocOpen}}">
+      <view class="tocrow tocrow--l{{item.level}}" wx:for="{{doc.toc}}" wx:key="id" data-id="{{item.id}}" bindtap="goHead">{{item.text}}</view>
+    </view>
+
+    <view class="docbody">
+      <mp-html class="mp-body" content="{{doc.body}}" copy-link="{{false}}" bindlinktap="onLinkTap" />
+    </view>
+    <view class="disclaimer">核实记录是过程材料，可能包含已被后续修订推翻的中间结论。以正文为准。</view>
+  </view>
+</block>
+
+<gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />

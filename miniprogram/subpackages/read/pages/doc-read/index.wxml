@@ -1,0 +1,42 @@
+<view class="loading" wx:if="{{loading}}">正在取这篇…</view>
+
+<view class="empty" wx:elif="{{offline}}">
+  <view class="h serif">这篇还没存到本机</view>
+  <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
+  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+</view>
+
+<view class="page page--flat" wx:else>
+  <view class="dhead">
+    <view class="dh-t serif">{{doc.title}}</view>
+    <view class="dh-m mono">长文 · {{doc.chars}} 字</view>
+  </view>
+
+  <view class="tocbar" bindtap="toggleToc" wx:if="{{toc.length}}">
+    <text class="mono">这篇讲什么 · {{toc.length}} 节</text>
+    <text class="mono t3">{{tocOpen ? '收起' : '展开'}}</text>
+  </view>
+
+  <view class="toc" wx:if="{{tocOpen}}">
+    <view
+      class="tocrow tocrow--l{{item.level}}"
+      wx:for="{{toc}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="goHead"
+    >{{item.text}}</view>
+  </view>
+
+  <view class="docbody">
+    <mp-html
+      class="mp-body"
+      content="{{doc.body}}"
+      copy-link="{{false}}"
+      bindlinktap="onLinkTap"
+    />
+  </view>
+
+  <view class="disclaimer">本内容为生活建议，不构成医疗建议或法律意见；就医请遵医嘱。</view>
+</view>
+
+<gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />

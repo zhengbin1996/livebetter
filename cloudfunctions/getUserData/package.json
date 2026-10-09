@@ -1,0 +1,9 @@
+{
+  "name": "getUserData",
+  "version": "1.0.0",
+  "description": "按 openid 读写收藏与打卡清单（LWW 合并）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

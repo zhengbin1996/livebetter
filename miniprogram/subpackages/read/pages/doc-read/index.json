@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "mp-html": "../../../../components/mp-html/index",
+    "gloss-pop": "../../../../components/gloss-pop/index"
+  },
+  "navigationBarTitleText": "长文"
+}

@@ -1,0 +1,9 @@
+.vbar { margin-top: 24rpx; }
+.vbar .r {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.vbar .r .ln { display: block; }
+.vbar .dot.off { background: var(--ink3); }
+.vbar .dot.stale { background: var(--amber); }

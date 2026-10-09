@@ -1,0 +1,36 @@
+/* 成本签：五格等宽表，仿标本签 */
+.cost {
+  display: flex;
+  border: 1rpx solid var(--line);
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: var(--card);
+}
+.cost .c {
+  flex: 1;
+  padding: 12rpx 4rpx 14rpx;
+  text-align: center;
+  border-left: 1rpx solid var(--line2);
+}
+.cost .c:first-child { border-left: none; }
+.cost .k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 19rpx;
+  color: var(--ink3);
+  letter-spacing: .02em;
+  margin-bottom: 6rpx;
+}
+.cost .v {
+  display: block;
+  font-family: var(--mono);
+  font-size: 25rpx;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.cost .v.is-g { color: var(--green); }
+
+/* sm：列表页用，压扁一点 */
+.cost--sm .c { padding: 8rpx 2rpx 10rpx; }
+.cost--sm .k { font-size: 17rpx; margin-bottom: 4rpx; }
+.cost--sm .v { font-size: 22rpx; }

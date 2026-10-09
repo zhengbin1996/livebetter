@@ -1,0 +1,36 @@
+<view class="page page--flat">
+  <view class="searchbar">
+    <view class="ic"></view>
+    <input
+      class="sinput"
+      value="{{q}}"
+      placeholder="在节名和摘要里找"
+      placeholder-class="sph"
+      confirm-type="search"
+      bindinput="onInput"
+    />
+    <text class="clr mono" wx:if="{{q}}" bindtap="clearQ">清</text>
+  </view>
+
+  <view class="label">{{sections.length}} 节 · 每节按性价比从高到低</view>
+
+  <view class="sectrow" wx:for="{{sections}}" wx:key="sec" data-sec="{{item.sec}}" bindtap="onTap">
+    <text class="n">{{item.sec}}</text>
+    <view class="b">
+      <view class="stt">{{item.title}}</view>
+      <view class="ssum" wx:if="{{item.summary}}">{{item.summary}}</view>
+      <view class="mtags" wx:if="{{item.groups.length}}">
+        <text class="gtag" wx:for="{{item.groups}}" wx:for-item="g" wx:key="*this">{{g}}</text>
+      </view>
+    </view>
+    <view class="m">
+      <text class="l1">{{item.items}} 条</text>
+      <text class="l2">{{item.tierText}} · {{item.evText}}</text>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{sections.length === 0}}">
+    <view class="h serif">没有匹配的节</view>
+    <view class="p">换个词试试，或者到检索页搜正文</view>
+  </view>
+</view>

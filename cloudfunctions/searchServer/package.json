@@ -1,0 +1,9 @@
+{
+  "name": "searchServer",
+  "version": "1.0.0",
+  "description": "全文检索：关键词 + 三维成本/证据/性价比/口径/章节筛选",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

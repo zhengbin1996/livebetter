@@ -1,0 +1,125 @@
+<view class="page">
+  <!-- 书封区：书名用宋体，给内容一层「文献」质感 -->
+  <view class="masthead">
+    <view class="bk">{{bookName}}</view>
+    <view class="tag">{{tagline}}</view>
+    <view class="stats mono">{{statLine}}</view>
+  </view>
+
+  <version-bar info="{{info}}" />
+
+  <!-- 检索入口 -->
+  <view class="searchbar">
+    <view class="ic"></view>
+    <input
+      class="sinput"
+      value="{{q}}"
+      placeholder="搜建议、搜症状、搜钱的事"
+      placeholder-class="sph"
+      confirm-type="search"
+      bindinput="onSearchInput"
+      bindconfirm="onSearchConfirm"
+    />
+  </view>
+
+  <!-- 按问题找 -->
+  <view class="label">按问题找 · {{problems.length}} 个</view>
+  <view class="plist">
+    <view
+      class="prow"
+      wx:for="{{visibleProblems}}"
+      wx:key="q"
+      data-sec="{{item.sec}}"
+      bindtap="onProblem"
+    >
+      <text class="q">{{item.q}}</text>
+      <text class="go mono">{{item.sec}} 节 ›</text>
+    </view>
+  </view>
+  <view
+    class="btn btn--ghost more"
+    bindtap="toggleProblems"
+    wx:if="{{problems.length > 6}}"
+  >{{problemsAll ? '收起' : '看全部 ' + problems.length + ' 个问题'}}</view>
+
+  <!-- 按节读 -->
+  <view class="label">按节读</view>
+  <view class="rowcard" bindtap="goSections">
+    <view class="rc-l">
+      <view class="rc-h serif">{{counts.sections}} 节目录</view>
+      <view class="rc-p">每节按性价比从高到低排，节内相互指路可点</view>
+    </view>
+    <text class="mono t3">{{counts.items}} 条 ›</text>
+  </view>
+
+  <!-- 书以外的材料 -->
+  <view class="label">书以外的材料</view>
+  <view class="rowcard" wx:for="{{longDocs}}" wx:key="sid" data-sid="{{item.sid}}" bindtap="goDoc">
+    <view class="rc-l">
+      <view class="rc-h serif">长文 · {{item.title}}</view>
+    </view>
+    <text class="mono t3">{{item.chars}} 字 ›</text>
+  </view>
+
+  <view class="rowcard" bindtap="goVerifyList">
+    <view class="rc-l">
+      <view class="rc-h serif">核实记录</view>
+      <view class="rc-p">每条来源的逐条核对过程</view>
+    </view>
+    <text class="mono t3">{{verify.length}} 篇 ›</text>
+  </view>
+
+  <view class="rowcard" bindtap="goRefsMap">
+    <view class="rc-l">
+      <view class="rc-h serif">引用对照</view>
+      <view class="rc-p">正文数字与原始文献的逐条对照</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+
+  <view class="rowcard" bindtap="goGlossary">
+    <view class="rc-l">
+      <view class="rc-h serif">术语表</view>
+      <view class="rc-p">阅读时点带虚线的词即可就地查</view>
+    </view>
+    <text class="mono t3">{{glossaryCount}} 条 ›</text>
+  </view>
+
+  <!-- 离线 -->
+  <view class="label">离线</view>
+
+  <view class="dl" wx:if="{{downloading}}">
+    <view class="dl-h mono">
+      <text>下载中 · {{progress.text}}</text>
+      <text>{{progress.percent}}%</text>
+    </view>
+    <view class="bar"><view class="fill" style="width:{{progress.percent}}%"></view></view>
+    <view class="dl-p mono t3">{{progress.size}}</view>
+  </view>
+
+  <view class="rowcard" bindtap="onDownload" wx:else>
+    <view class="rc-l">
+      <view class="rc-h serif">下载全书</view>
+      <view class="rc-p">{{cacheText}}</view>
+    </view>
+    <text class="mono tg">{{cache.complete ? '重新校验 ›' : '下载 ›'}}</text>
+  </view>
+
+  <view class="rowcard" bindtap="onClearCache" wx:if="{{!downloading && cache.files > 0}}">
+    <view class="rc-l">
+      <view class="rc-h serif">清空本机内容缓存</view>
+      <view class="rc-p">收藏与打卡不受影响</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+
+  <view class="rowcard" bindtap="goVersion">
+    <view class="rc-l">
+      <view class="rc-h serif">版本与更新</view>
+      <view class="rc-p">同步历史与内容统计</view>
+    </view>
+    <text class="mono t3">›</text>
+  </view>
+
+  <view class="disclaimer">{{disclaimer}}</view>
+</view>

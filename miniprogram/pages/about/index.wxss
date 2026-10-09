@@ -1,0 +1,143 @@
+.masthead { padding: 32rpx 0 20rpx; }
+.masthead .bk {
+  font-family: var(--serif);
+  font-size: 46rpx;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.masthead .sub {
+  font-size: 24rpx;
+  color: var(--ink2);
+  line-height: 1.7;
+  margin-top: 12rpx;
+}
+.masthead .ver {
+  font-size: 22rpx;
+  color: var(--green);
+  margin-top: 14rpx;
+}
+
+.kv {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 4rpx 26rpx;
+  margin-bottom: 16rpx;
+}
+.kvrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--line2);
+}
+.kvrow:last-child { border-bottom: none; }
+.kvrow .k { font-size: 26rpx; color: var(--ink2); flex: none; }
+.kvrow .v { font-size: 24rpx; color: var(--ink); text-align: right; }
+
+.rowcard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 26rpx 28rpx;
+  margin-bottom: 16rpx;
+}
+.rowcard .rc-l { flex: 1; min-width: 0; }
+.rowcard .rc-h {
+  font-family: var(--serif);
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.rowcard .rc-p {
+  font-size: 23rpx;
+  color: var(--ink3);
+  line-height: 1.6;
+  margin-top: 6rpx;
+}
+
+/* 许可区 */
+.lic {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 28rpx 26rpx;
+  margin-bottom: 20rpx;
+}
+.lic .lic-h {
+  font-family: var(--serif);
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--ink);
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid var(--line);
+  margin-bottom: 8rpx;
+}
+.lic .lic-item { display: flex; gap: 20rpx; padding: 22rpx 0; }
+.lic .li-n {
+  flex: none;
+  width: 44rpx;
+  font-size: 22rpx;
+  color: var(--ink3);
+  padding-top: 4rpx;
+}
+.lic .li-b { flex: 1; min-width: 0; }
+.lic .li-t {
+  display: block;
+  font-size: 27rpx;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8rpx;
+}
+.lic .li-d {
+  display: block;
+  font-size: 25rpx;
+  color: var(--ink2);
+  line-height: 1.7;
+  word-break: break-all;
+}
+.lic .li-link {
+  display: inline-block;
+  font-size: 21rpx;
+  color: var(--green);
+  margin-top: 14rpx;
+  border-bottom: 1rpx dashed var(--green);
+}
+.lic .lic-foot {
+  font-size: 23rpx;
+  color: var(--ink3);
+  line-height: 1.7;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--line2);
+  margin-top: 8rpx;
+}
+
+.disc {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-left: 6rpx solid var(--amber);
+  border-radius: 8rpx 16rpx 16rpx 8rpx;
+  padding: 26rpx 28rpx;
+  margin-bottom: 32rpx;
+}
+.disc text {
+  display: block;
+  font-size: 24rpx;
+  color: var(--ink2);
+  line-height: 1.8;
+  margin-bottom: 16rpx;
+}
+.disc text:last-child { margin-bottom: 0; }
+
+.footer {
+  text-align: center;
+  font-size: 20rpx;
+  color: var(--ink3);
+  padding: 40rpx 0 20rpx;
+}

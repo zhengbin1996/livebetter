@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "styleIsolation": "apply-shared",
+  "usingComponents": {
+    "cost-tag": "../cost-tag/index",
+    "ev-badge": "../ev-badge/index",
+    "tier-meter": "../tier-meter/index"
+  }
+}

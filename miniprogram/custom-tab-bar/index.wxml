@@ -1,0 +1,16 @@
+<!-- 自定义 tabBar：等宽字体 + 顶部一个 4rpx 的短标识条。
+     不做图标 —— 原型里的图标是装饰性的，而这本书的设计原则是
+     「凡是在内容里找不到出处的元素就不画」。文字本身就是最好的图标。 -->
+<view class="tabbar">
+  <view
+    class="tb {{selected === index ? 'on' : ''}}"
+    wx:for="{{list}}"
+    wx:key="path"
+    data-i="{{index}}"
+    bindtap="onTap"
+  >
+    <view class="mark"></view>
+    <text class="lb">{{item.text}}</text>
+    <text class="badge" wx:if="{{item.badge}}">{{item.badge}}</text>
+  </view>
+</view>

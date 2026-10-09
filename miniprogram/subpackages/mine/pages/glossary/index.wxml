@@ -1,0 +1,89 @@
+<view class="seg">
+  <view class="s {{tab === 'terms' ? 'on' : ''}}" data-tab="terms" bindtap="switchTab">术语表 · {{terms.length}}</view>
+  <view class="s {{tab === 'legend' ? 'on' : ''}}" data-tab="legend" bindtap="switchTab">标注怎么读</view>
+</view>
+
+<!-- 术语表 -->
+<block wx:if="{{tab === 'terms'}}">
+  <view class="page page--flat">
+    <view class="searchbar">
+      <view class="ic"></view>
+      <input
+        class="sinput"
+        value="{{q}}"
+        placeholder="搜术语或释义"
+        placeholder-class="sph"
+        confirm-type="search"
+        bindinput="onInput"
+      />
+      <text class="clr mono" wx:if="{{q}}" bindtap="clearQ">清</text>
+    </view>
+
+    <view class="label">{{filtered.length}} 条</view>
+    <view class="tlist">
+      <view class="trow" wx:for="{{filtered}}" wx:key="term" data-term="{{item.term}}" bindtap="toggleTerm">
+        <view class="tr-h">
+          <text class="tr-t mono">{{item.term}}</text>
+          <text class="tr-x mono t3">{{openTerm === item.term ? '收起' : '展开'}}</text>
+        </view>
+        <view class="tr-b serif" wx:if="{{openTerm === item.term}}">{{item.meaning}}</view>
+      </view>
+    </view>
+
+    <view class="disclaimer">释义直接取自原书 README 的「读懂数字」一节，未做改写。</view>
+  </view>
+</block>
+
+<!-- 标注释义 -->
+<block wx:else>
+  <view class="page page--flat">
+    <view class="label">四条口径 · 分开算，不互相折算</view>
+    <view class="cardbox">
+      <view class="res" wx:for="{{legend.resources}}" wx:key="name">
+        <text class="res-n serif">{{item.name}}</text>
+        <text class="res-d">{{item.desc}}</text>
+      </view>
+      <mp-html class="mp-body resnote" content="{{legend.resourcesNote}}" copy-link="{{false}}" />
+    </view>
+
+    <view class="label">证据等级 · 回答「数字可不可信」</view>
+    <view class="cardbox">
+      <view class="evrow" wx:for="{{legend.evidence}}" wx:key="level">
+        <ev-badge level="{{item.level}}" />
+        <text class="ev-m">{{item.meaning}}</text>
+      </view>
+      <mp-html class="mp-body resnote" content="{{legend.evidenceNote}}" copy-link="{{false}}" />
+    </view>
+
+    <view class="label">性价比档 · 回答「值不值得做」</view>
+    <view class="cardbox">
+      <view class="minihead">
+        <text class="mh">维度</text><text class="mh">取值</text><text class="mh">怎么定的</text>
+      </view>
+      <view class="minir" wx:for="{{legend.tierRules}}" wx:key="*this">
+        <text class="mc1">{{item[0]}}</text>
+        <text class="mc2">{{item[1]}}</text>
+        <text class="mc3">{{item[2]}}</text>
+      </view>
+      <mp-html class="mp-body resnote" content="{{legend.tierNote}}" copy-link="{{false}}" />
+    </view>
+
+    <view class="label">成本签的五格</view>
+    <view class="cardbox">
+      <view class="tagrow" wx:for="{{tagRows}}" wx:key="k">
+        <text class="tg-k mono">{{item.k}}</text>
+        <text class="tg-v">{{item.v}}</text>
+      </view>
+    </view>
+
+    <view class="label">怎么读这本书</view>
+    <view class="cardbox">
+      <view class="howrow" wx:for="{{legend.howto}}" wx:key="head">
+        <text class="hw-h serif">{{item.head}}</text>
+        <mp-html class="mp-body hw-b" content="{{item.body}}" copy-link="{{false}}" />
+      </view>
+    </view>
+
+    <view class="disclaimer">以上释义均取自原书 README，未做改写。</view>
+  </view>
+</block>

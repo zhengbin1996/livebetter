@@ -1,0 +1,9 @@
+{
+  "name": "syncIngest",
+  "version": "1.0.0",
+  "description": "把 GitHub Release 上的版本化分片搬进云存储并原子翻转 manifest",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
