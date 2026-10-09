@@ -46,7 +46,8 @@ cloudfunctions/        云函数（Node）
   syncIngest/          把 Release 资产搬进云存储并原子翻转 manifest
 
 miniprogram/           小程序主体
-  data/essentials.json 主包内置索引（构建时自动同步，必须入库）
+  data/essentials.js  主包内置索引（构建时自动生成，必须入库；**不能用 .json**，
+                      小程序不支持 require JSON）
   utils/               config / cloud / content / store / fmt / refs
   components/          成本标签、证据徽章、性价比刻度、条目行、术语弹层、mp-html
   custom-tab-bar/      自定义 tabBar
@@ -245,7 +246,7 @@ python build/stage_release.py --check
 - 检索默认只覆盖**条目**；长文与核实记录在没有任何筛选条件时会附带返回，
   带条目筛选时不返回（它们没有节号/成本这些维度）。
 - 长文只在语料里保留前 400 字明文做结果摘要，命中位置在正文深处时摘要展示的是开篇。
-- 上游若新增**节**（超过 34 节），`essentials.json` 的节索引会跟着变，
+- 上游若新增**节**（超过 34 节），`essentials.js` 的节索引会跟着变，
   需要重新发一次小程序版本才能让新节进入首页目录（分片本身是自动同步的）。
 
 ---

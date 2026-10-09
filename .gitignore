@@ -31,5 +31,6 @@ __pycache__/
 .venv/
 venv/
 
-# 注意：miniprogram/data/essentials.json 是主包内置索引，**必须入库**，
-# 它是「安装即有」的首屏数据。构建时由 build/parse.py 自动同步。
+# 注意：miniprogram/data/essentials.js 是主包内置索引，**必须入库**，
+# 它是「安装即有」的首屏数据。构建时由 build/parse.py 自动生成。
+# （用 .js 而不是 .json：小程序不支持 require JSON。）

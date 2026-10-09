@@ -22,7 +22,6 @@ import argparse
 import json
 import os
 import re
-import shutil
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -798,11 +797,29 @@ def main() -> int:
 
     # 顺手同步一份到小程序主包：essentials 是「安装即有」的首屏索引，
     # 必须和构建产物同源。放在这里做，省掉一次手工拷贝，也就不会漏。
+    #
+    # ⚠️ 产出 **.js**（module.exports = {...}）而不是 .json：
+    #    小程序不支持 require JSON —— 开发者工具会给它补 `.js` 后缀，
+    #    然后报 `module 'data/essentials.json.js' is not defined`。
+    #    如果那个 require 包在 try/catch 里，就会**静默**变成「首屏整页没数据」。
     if not args.no_bundle:
         try:
             BUNDLE_DATA.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(dist / "essentials.json", BUNDLE_DATA / "essentials.json")
-            log(f"    已同步内置索引 → {BUNDLE_DATA / 'essentials.json'}")
+            bundle = BUNDLE_DATA / "essentials.js"
+            bundle.write_text(
+                "/* 由 build/parse.py 自动生成，请勿手工编辑。\n"
+                "   ⚠️ 必须是 .js 而不是 .json：小程序不支持 require JSON。 */\n"
+                "module.exports = "
+                + json.dumps(essentials, ensure_ascii=False, separators=(",", ":"))
+                + "\n",
+                encoding="utf-8",
+            )
+            log(f"    已同步内置索引 → {bundle}")
+            # 清掉历史遗留的 .json —— 它 require 不了，留着只会误导
+            stale = BUNDLE_DATA / "essentials.json"
+            if stale.exists():
+                stale.unlink()
+                log("    已删除遗留的 essentials.json（小程序无法 require JSON）")
         except Exception as e:
             log(f"    !! 同步内置索引失败（不影响在线产物）：{e}")
 

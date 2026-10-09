@@ -319,6 +319,12 @@ curl -i -X POST 'https://<你复制的地址>' \
 10. **WXSS 的选择器里不能有中文** —— `.tier--极高 { ... }` 会让开发者工具在**编译期**直接失败，
    报 `unexpected ...`（行列指向那个中文字符，信息还具有误导性），而中文放在**注释**和
    **声明值**里都没问题。类名一律用 ASCII（`build/check_miniprogram.py` 第 8 项会拦）。
+11. **小程序不支持 `require` JSON 文件** —— 工具会给路径补 `.js` 后缀，报
+   `module 'data/essentials.json.js' is not defined`。若这个 require 包在 `try/catch` 里，
+   就会**静默失败**，症状是**首屏整页没有数据**（数字全变 undefined、列表为空），
+   而界面上看不出任何原因。所以内置索引由 `build/parse.py` 生成成
+   `miniprogram/data/essentials.js`（`module.exports = {...}`）；
+   `build/check_miniprogram.py` 第 4 项会拦这种写法。
 
 ---
 

@@ -4,7 +4,7 @@
   1. app.json 里的每个 page / subPackage page 是否三件套齐全（.js/.wxml/.json）
   2. tabBar 页面是否都在主包（这是硬约束：tabBar 页面不能放分包）
   3. 所有 usingComponents 的相对路径能否解析
-  4. 所有 require('...') 的相对路径能否解析
+  4. 所有 require('...') 的相对路径能否解析（并拦住 require JSON 这种不支持的写法）
   5. 页面/组件里对 utils/* 的调用，是否都在该模块的 module.exports 里
   6. 主包体积是否超 2 MB（分包是否超 2 MB）
   7. 云函数 config.json 的定时触发器 cron 是否为合法的 7 段
@@ -129,6 +129,15 @@ def check_paths() -> None:
             if not spec.startswith("."):
                 continue
             n += 1
+            if spec.endswith(".json"):
+                # 小程序不支持 require JSON：工具会给它补 .js 后缀，
+                # 报 `module 'xxx.json.js' is not defined`；若包在 try/catch 里
+                # 就会静默失败（典型症状：首屏整页没数据）。
+                fail(
+                    f"{rel(f)} 用 require 引入 JSON（小程序不支持）：require('{spec}')"
+                    " —— 改成 .js 并用 module.exports 导出"
+                )
+                continue
             if not resolves(f.parent, spec):
                 fail(f"{rel(f)} 的 require('{spec}') 无法解析")
     ok(f"相对 require {n} 处全部可解析")

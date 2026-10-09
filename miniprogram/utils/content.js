@@ -5,7 +5,8 @@ const cloud = require('./cloud')
  * 内容分片服务。
  *
  * 数据分层（与 build/parse.py 的产物一一对应）：
- *   essentials.json   主包内置，安装即有，首屏与降级都靠它
+ *   essentials.js     主包内置（**JS 模块，不是 JSON** —— 小程序 require 不了 JSON），
+ *                     安装即有，首屏与降级都靠它
  *   book/NN.json      34 个节分片，点开该节时下载
  *   docs/*.json       长文
  *   docs/verify/*.json 核实记录
