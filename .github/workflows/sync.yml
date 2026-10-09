@@ -18,6 +18,13 @@ on:
     paths:
       - 'build/**'
       - '.github/workflows/sync.yml'
+    # ⚠️ GitHub 对「推送到新分支」只按最深提交的父提交做两点 diff 来判定路径过滤
+    #   （docs：Pushes to new branches: a two-dot diff against the parent of the
+    #   ancestor of the deepest commit pushed；diff 上限 300 文件）。
+    #   后果：仓库**首次**推送（新建 main）不会触发本工作流 —— 首个提交之后若还有
+    #   提交，路径过滤只看到最后一个提交的改动，`build/**` 可能不在其中。
+    #   首次请在 Actions 页手动 Run workflow，或等次日 05:17 的定时任务；
+    #   此后每条推送都是「head 与 base SHA 直接比较」，不受影响。
 
 permissions:
   contents: write # 发布 Release 需要
