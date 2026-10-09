@@ -10,7 +10,8 @@
 * 一律不改写上游文字。渲染用原始 markdown，只在两处做**增量包裹**：
   交叉引用包成 `[原文](ref://sid)`，术语包成 `[原文](gloss://术语)`。
 * 性价比档直接复刻上游 `tools/lib/book.mjs` 的 COST_W / ratioOf，
-  跑完用 README 公布的 A=438 / B=182 / C=55、极高=114 / 高=303 / 一般=258 自校验。
+  跑完用 README 公布的 A/B/C 与性价比档位数字做自校验：总数取自 A+B+C（**不写死**，
+  否则上游每加一条就会让每日同步失败）；硬不变量不符才返回 1，README 数字滞后的只警告。
 * 产物分层：essentials 进主包；book/ docs/ 走云存储按需下载；
   search/corpus.json 只给服务端。
 """
@@ -546,31 +547,46 @@ def main() -> int:
             dispute += 1 if it["dispute"] else 0
             todo += 1 if it["todo"] else 0
     claim = meta["statsClaim"]
+
+    # 总数**不能写死**：上游每新增一条建议，写死的数字就会失配，
+    # 而任何失配都会让构建返回 1 —— 等于「上游一加条目，每日同步就整体停摆」。
+    # README 会公布 A/B/C 三档条数，三档之和就是总数，拿它当基准即可随上游自动更新。
+    abc_total = sum(claim.get(k) or 0 for k in ("A", "B", "C"))
+
+    # 检查分两类，失败语义不同：
+    #   硬不变量（hard=True）：对不上只可能是**我们解析错了**，必须让 CI 红。
+    #   漂移检查（hard=False）：我们的解析结果 vs README 公布数字。README 可能滞后于正文
+    #     （上游改完正文忘了同步数字），这是上游的记账问题，只警告不阻断，
+    #     否则每日自动同步会因为上游记账不及时而卡死。
     checks = [
-        ("总数", total_items, 675),
-        ("A 级", ev_count["A"], claim.get("A")),
-        ("B 级", ev_count["B"], claim.get("B")),
-        ("C 级", ev_count["C"], claim.get("C")),
-        ("争议", dispute, claim.get("dispute")),
-        ("TODO", todo, claim.get("TODO")),
-        ("性价比极高", tier_count["极高"], claim.get("tier3")),
-        ("性价比高", tier_count["高"], claim.get("tier2")),
-        ("性价比一般", tier_count["一般"], claim.get("tier1")),
-        ("引用失效", ref_broken, 0),
+        ("引用失效", ref_broken, 0, True),
+        ("总数=A+B+C", total_items, abc_total or total_items, True),
+        ("A 级", ev_count["A"], claim.get("A"), False),
+        ("B 级", ev_count["B"], claim.get("B"), False),
+        ("C 级", ev_count["C"], claim.get("C"), False),
+        ("争议", dispute, claim.get("dispute"), False),
+        ("TODO", todo, claim.get("TODO"), False),
+        ("性价比极高", tier_count["极高"], claim.get("tier3"), False),
+        ("性价比高", tier_count["高"], claim.get("tier2"), False),
+        ("性价比一般", tier_count["一般"], claim.get("tier1"), False),
     ]
     ok_all = True
-    for label, got, want in checks:
-        if want is None:
-            mark = "?"
+    drift = []
+    for label, got, want, hard in checks:
+        if want is None and not hard:
+            mark = "README 未公布"
         elif got == want:
             mark = "OK"
-        elif label == "引用失效":
-            mark = "!!"
+        elif hard:
+            mark = "!! 不符"
             ok_all = False
         else:
-            mark = f"差异 {got - want:+d}"
-            ok_all = False
+            mark = f"滞后 {got - want:+d}"
+            drift.append(f"{label}（解析 {got} / README {want}）")
         log(f"    {label:<12} 解析 {got:>5}   README {str(want):>5}   {mark}")
+    if drift:
+        log(f"    ! README 公布数字滞后于正文：{'、'.join(drift)}")
+        log("      （产物用的是解析值，不影响同步；顺手给上游提个 issue 即可）")
 
     if args.stats:
         return 0 if ok_all else 1
@@ -828,7 +844,7 @@ def main() -> int:
     log(f"  分片 {len(shards)} 个，共 {total / 1024:.1f} KB；essentials {size_e / 1024:.1f} KB")
     log(f"  产物目录 {dist}")
     if not ok_all:
-        log("  !! 统计自校验存在差异，请先核对再继续（可能上游改了格式或公布数字未同步）")
+        log("  !! 硬不变量不符（引用失效 / 总数与 A+B+C 不一致）—— 大概率是解析逻辑出问题，别急着发布")
     return 0 if ok_all else 1
 
 
