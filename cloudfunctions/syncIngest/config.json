@@ -3,7 +3,7 @@
     {
       "name": "pollRelease",
       "type": "timer",
-      "config": "0 */10 * * * *"
+      "config": "0 */10 * * * * *"
     }
   ]
 }

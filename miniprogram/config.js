@@ -11,7 +11,9 @@ module.exports = {
   BOOK_NAME: '高性价比人生指南',
 
   // 云开发环境 ID。留空则用默认环境（只有一个环境时可留空）。
-  CLOUD_ENV: 'wx0bcbaa8e93eaefc5',
+  // ⚠️ 这里必须是**环境 ID**（形如 cloud1-xxxx），不是 AppID（wx 开头）——
+  //    填错的症状是不报错，但云调用全部静默失败、syncState 永远是 offline。
+  CLOUD_ENV: 'cloud1-d8gc8etl2e047a62f',
 
   REPO_URL: 'https://github.com/eternity4719/HowToLiveBetter',
   LICENSE_NAME: 'CC BY 4.0',

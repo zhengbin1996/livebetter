@@ -7,6 +7,7 @@
   4. 所有 require('...') 的相对路径能否解析
   5. 页面/组件里对 utils/* 的调用，是否都在该模块的 module.exports 里
   6. 主包体积是否超 2 MB（分包是否超 2 MB）
+  7. 云函数 config.json 的定时触发器 cron 是否为合法的 7 段
 
 **为什么需要它**：小程序的相对路径是按「文件所在目录」算的，
 子包页面比主包页面深两层，从主包文件拷过去的 `../../` 会**静默少一层** ——
@@ -223,12 +224,63 @@ def check_size() -> None:
     ok("体积在限制内")
 
 
+# ---------------------------------------------------------------- 7 云函数触发器
+
+REPO = ROOT.parent
+# 微信云开发的 cron 是 7 个**必需**字段：秒 分 时 日 月 周 年。
+# 少写一位（例如把 `0 */10 * * * * *` 写成 6 段）不会在本地报错，
+# 但部署到云端会让定时触发器配置不合法、函数卡在中间态，
+# 表现是所有调用都返回 `ret:-3 system error` —— 极难定位，所以在这里挡住。
+CRON_FIELDS = 7
+
+
+def check_cloudfunction_triggers() -> None:
+    log("[7] 云函数定时触发器 cron")
+    cf_dir = REPO / "cloudfunctions"
+    if not cf_dir.exists():
+        ok("没有 cloudfunctions/，跳过")
+        return
+    n = 0
+    for cfg in sorted(cf_dir.glob("*/config.json")):
+        try:
+            d = json.loads(cfg.read_text(encoding="utf-8"))
+        except Exception as e:
+            fail(f"{cfg.name} 不是合法 JSON：{e}")
+            continue
+        triggers = d.get("triggers")
+        if triggers is None:
+            continue
+        if not isinstance(triggers, list):
+            fail(f"{cfg.parent.name}/config.json 的 triggers 必须是数组")
+            continue
+        if len(triggers) > 1:
+            fail(f"{cfg.parent.name} 配了 {len(triggers)} 个触发器（微信云开发只支持 1 个）")
+        for t in triggers:
+            n += 1
+            where = f"{cfg.parent.name}/config.json 触发器 {t.get('name')!r}"
+            if t.get("type") != "timer":
+                fail(f"{where} 的 type 必须是 'timer'")
+            name = str(t.get("name") or "")
+            if not re.fullmatch(r"[A-Za-z][\w-]{0,59}", name):
+                fail(f"{where} 的 name 不合法（字母开头，仅字母数字 - _，≤60 字符）")
+            fields = str(t.get("config") or "").split()
+            if len(fields) != CRON_FIELDS:
+                fail(
+                    f"{where} 的 cron 有 {len(fields)} 段，微信要求 {CRON_FIELDS} 段"
+                    f"（秒 分 时 日 月 周 年）：{' '.join(fields)!r}"
+                )
+            elif not fields[0].isdigit() or not fields[1]:
+                fail(f"{where} 的 cron 第一段（秒）应写具体值，如 0")
+    ok(f"触发器 {n} 个，cron 段数与字段检查通过")
+
+
 def main() -> int:
     log(f"检查 {ROOT}")
     check_app_json()
     check_paths()
     check_calls()
     check_size()
+    check_cloudfunction_triggers()
     if problems:
         log(f"\n{len(problems)} 个问题")
         return 1

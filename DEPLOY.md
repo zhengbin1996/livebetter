@@ -22,12 +22,8 @@
 ## 阶段 1 · 微信侧
 
 - [x] `project.config.json` → `appid` = `wx0bcbaa8e93eaefc5`
-- [ ] ⚠️ **核对 `miniprogram/config.js` 的 `CLOUD_ENV`** —— 现在填的是 `wx0bcbaa8e93eaefc5`，  
-  那是 **AppID**，不是环境 ID。环境 ID 在云开发控制台首页／设置里，**形如 `cloud1-xxxxxxxx`**  
-  （`wx` 开头的一定是 AppID）。  
-  填错的症状：不报错，但小程序端云调用全部静默失败，`syncState` 永远是 `offline`。
+- [x] `miniprogram/config.js` → `CLOUD_ENV` = `cloud1-d8gc8etl2e047a62f`（**环境 ID**，不是 AppID）
 - [ ] 开发者工具打开项目 → 顶部「云开发」→ 开通（首次需同意协议；选按量付费，有免费额度）
-- [ ] 云开发控制台 → 设置 → 复制**环境 ID** → 填回 `miniprogram/config.js` 的 `CLOUD_ENV`
 - [ ] 开发者工具左侧 `cloudfunctions/` 右键 → 云开发环境 → 选中刚建的环境  
   （文件夹名显示「未指定环境」时必做，否则云函数列表为空）
 - [ ] 云开发控制台 → 数据库 → 建集合 **`manifest`**，权限设 **「所有人不可读写」**  
@@ -158,7 +154,7 @@ curl -i -X POST 'https://<你复制的地址>' \
 **已经写在 `cloudfunctions/syncIngest/config.json` 里**，部署云函数时自动带上：
 
 ```json
-{ "triggers": [{ "name": "pollRelease", "type": "timer", "config": "0 */10 * * * *" }] }
+{ "triggers": [{ "name": "pollRelease", "type": "timer", "config": "0 */10 * * * * *" }] }
 ```
 
 含义：**每 10 分钟查一次** GitHub Release，有新版本就搬，没有就直接跳过。
@@ -170,7 +166,9 @@ curl -i -X POST 'https://<你复制的地址>' \
 > 所以 `0 17 5 * * * *` 就是**北京时间 05:17** —— 和 GitHub Actions 的构建时刻撞在一起了，  
 > 正是因为这个才改成每 10 分钟轮询。别再按「cron 是 UTC」去读它。
 
-- cron 是 **7 位**（秒 分 时 日 月 周 年），和 Linux 的 5 位不同
+- cron 是 **7 位**（秒 分 时 日 月 周 年），和 Linux 的 5 位不同。⚠️ **少写一段不会在本地报错**，
+  但部署后触发器配置不合法、函数会被卡住 —— 症状就是云端测试返回 `ret:-3 system error`
+  （看起来像「函数没部署成功」，其实函数是 Active 的）。`build/check_miniprogram.py` 已能查这一段。
 - 微信云开发**一个云函数只支持一个**定时触发器（`triggers` 数组只能填一项）
 - 想改成别的节奏就在上面这个 `config` 里改，例如：
   - `0 0 * * * * *` = 每小时整点
@@ -228,6 +226,7 @@ curl -i -X POST 'https://<你复制的地址>' \
 | 一直「已上传 0，剩余 N」         | 云存储写入或分片下载有问题，看云函数日志                  |
 | 定时器到了但没触发（走 2.4 路线）    | 触发器没上传（改完 `config.json` 要重新部署 / 上传触发器）；或 cron 少写一位 |
 | 定时器日志里全是 `skipped: true` | 正常 —— 已经是最新版本，每 10 分钟只是查一下         |
+| 云端测试/调用报 `ret:-3 system error`（`apiIdentifier: scf/Invoke`） | 函数其实在中间态：触发器配置不合法（**cron 少一段**）、刚部署还没稳定、或控制台侧抽风。见下 |
 
 ### 2.7 顺手确认小程序端
 
@@ -268,12 +267,12 @@ curl -i -X POST 'https://<你复制的地址>' \
 | 值             | 填在哪                                   | 内容                                      |
 | ------------- | ------------------------------------- | --------------------------------------- |
 | `appid`       | `project.config.json` → `appid`       | `wx0bcbaa8e93eaefc5`（已填）                |
-| `CLOUD_ENV`   | `miniprogram/config.js` → `CLOUD_ENV` | **云开发环境 ID**（形如 `cloud1-xxxx`，不是 AppID） |
+| `CLOUD_ENV`   | `miniprogram/config.js` → `CLOUD_ENV` | `cloud1-d8gc8etl2e047a62f`（**环境 ID**，不是 AppID，已填） |
 | `SOURCE_REPO` | 云函数 `syncIngest` 环境变量                 | `zhengbin1996/livebetter`（**唯一必填项**）    |
 | `SYNC_TOKEN`  | `syncIngest` 环境变量 + 仓库 Secrets        | 只有配 2.3 时才需要，两边同一串                      |
 | `SYNC_URL`    | 仓库 Variables                          | 只有配 2.3 时才需要                            |
 | 超时时间          | 云函数配置                                 | `syncIngest` 60 秒、`searchServer` 20 秒   |
-| 定时触发器         | `syncIngest/config.json`（已写好）         | `0 */10 * * * *` = 每 10 分钟查一次           |
+| 定时触发器         | `syncIngest/config.json`（已写好）         | `0 */10 * * * * *` = 每 10 分钟查一次          |
 
 ---
 
@@ -281,8 +280,8 @@ curl -i -X POST 'https://<你复制的地址>' \
 
 1. **云函数默认超时 3 秒** —— `syncIngest` / `searchServer` 必须手动改大（60s / 20s），  
    否则表现是「HTTP 500 或直接超时，云函数日志里什么都没有」，最难查。
-2. **`CLOUD_ENV` 填成了 AppID** —— 环境 ID 形如 `cloud1-xxxx`，`wx` 开头的是 AppID。  
-   填错不报错，只是云调用静默失败、`syncState` 永远是 `offline`。
+2. **`CLOUD_ENV` 填成了 AppID** —— 环境 ID 形如 `cloud1-xxxx`，`wx` 开头的是 AppID。
+   本项目用的是 `cloud1-d8gc8etl2e047a62f`。填错不报错，只是云调用静默失败、`syncState` 永远是 `offline`。
 3. **HTTP 访问服务的 event 结构与 `callFunction` 完全不同** —— 它把请求包成  
    `{path, httpMethod, headers, queryStringParameters, body}`，业务参数在 **body 字符串**里，  
    直接读 `event.token` 只会拿到 `undefined`。本项目已在 `cloudfunctions/syncIngest/adapt.js`  
@@ -296,8 +295,10 @@ curl -i -X POST 'https://<你复制的地址>' \
    而**函数运行环境**里的 `new Date()` 才是 UTC。方向刚好和直觉相反：
    写 `0 17 5 * * * *` 就是**北京 05:17**，不是 UTC 05:17。
    （函数内所有时间戳都用 `toISOString()` 存 UTC，所以数据本身不受影响，只有 cron 的读法要小心。）
-8. **`triggers` 数组只能有一项** —— 微信云开发一个云函数只允许一个定时触发器，
-   想跑两个时间点就写 `0 0,30 * * * * *` 这种跨字段写法，别加第二个数组元素。
+8. **`triggers` 数组只能有一项，且 cron 必须 7 段** —— 微信云开发一个云函数只允许一个定时触发器；
+   cron 是 **7 段**（秒 分 时 日 月 周 年），**少写一段不会在本地报错**，
+   但部署后触发器配置不合法、函数会卡在中间态，**所有调用都返回 `ret:-3 system error`**，
+   极易误判成「函数没部署好」。`build/check_miniprogram.py` 现在会检查这一段。
 9. **HTTP 访问服务页面顶部的总开关** —— 新版控制台（v2.0.x）先进「环境管理 → HTTP 访问服务」，
    页面顶部有个开关**必须先打开**，否则「新建 / 添加路由」是灰的，很多人以为功能被下线了。
    新建完还要**等 3–5 分钟**路由才生效，立刻访问是 404。

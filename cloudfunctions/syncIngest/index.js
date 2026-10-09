@@ -17,6 +17,9 @@
  *
  * ⚠️ 定时触发器的 cron 时区是 **UTC+8（北京时间）**，而函数运行时的 new Date()
  *    是 UTC —— 两者相反，很容易搞混（见官方文档「触发器规则的时区为 UTC+8」）。
+ * ⚠️ cron 必须是 **7 段**（秒 分 时 日 月 周 年），少一段不会在本地报错，
+ *    但部署后触发器配置不合法、函数会卡在中间态，所有调用返回 `ret:-3 system error`。
+ *    `build/check_miniprogram.py` 的第 7 项会挡住这种写法。
  *
  * 关键设计
  *   * 解析逻辑**不在这里** —— markdown → JSON 由 Actions 端的 build/parse.py 负责，
