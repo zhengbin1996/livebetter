@@ -117,6 +117,8 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
 
 ## 五、部署步骤
 
+> 逐步操作清单见 **[DEPLOY.md](./DEPLOY.md)**（含配置值对照表与最容易踩的坑）。
+
 ### 1. 建云开发环境
 
 微信开发者工具里开通云开发，拿到环境 ID，填进 `miniprogram/config.js` 的 `CLOUD_ENV`
