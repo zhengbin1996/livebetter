@@ -15,6 +15,10 @@
  *      配了的话单次跑不完就反复调，直到 remaining 为 0。
  *   两种触发方式传进来的 event 结构**完全不同**，入口处做归一化（见「入口适配」）。
  *
+ * 体检
+ *   传 `{"action":"ping"}` 会立刻回 `{"ok":true,"pong":true,...}`，不碰网络也不碰数据库。
+ *   部署完 / 排错时先跑这个：能回 pong 就说明「函数被调起」这一层是通的。
+ *
  * ⚠️ 定时触发器的 cron 时区是 **UTC+8（北京时间）**，而函数运行时的 new Date()
  *    是 UTC —— 两者相反，很容易搞混（见官方文档「触发器规则的时区为 UTC+8」）。
  * ⚠️ cron 必须是 **7 段**（秒 分 时 日 月 周 年），少一段不会在本地报错，
@@ -115,6 +119,24 @@ exports.main = async (event) => {
 }
 
 async function run(ev, viaHttp) {
+  // 体检：不碰网络、不碰数据库，直接回一个 pong。
+  // 用途是把两类完全不同的故障分开 ——
+  //   * 连 pong 都拿不到 → 函数根本没被调起（环境 / 部署 / 控制台的问题）
+  //   * 拿到 pong 但同步报错 → 函数是好的，问题在同步逻辑或配置
+  // 从「云端测试」和从小程序端调用都可以用它，没有副作用。
+  if (ev.action === 'ping') {
+    return {
+      ok: true,
+      pong: true,
+      // 函数**自己认为**它在哪个环境 —— 和配置里的 CLOUD_ENV 对不上就是环境串了
+      envId: process.env.TCB_ENV || process.env.SCF_NAMESPACE || '',
+      sourceRepo: SOURCE_REPO || null,
+      budgetMs: BUDGET_MS,
+      tokenRequired: Boolean(SYNC_TOKEN),
+      now: new Date().toISOString(),
+    }
+  }
+
   if (!SOURCE_REPO) {
     return { ok: false, error: 'NO_SOURCE_REPO', message: '请在云函数环境变量里设置 SOURCE_REPO' }
   }
