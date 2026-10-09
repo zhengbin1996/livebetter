@@ -10,6 +10,8 @@
  *   1) GitHub Actions 构建完并发布 Release 后，通过「HTTP 访问服务」调一次；
  *      单次跑不完就反复调，直到 remaining 为 0（分钟级同步）。
  *   2) 云函数定时触发器每天兜底一次（GitHub 抖动 / Actions 失败时）。
+ *      触发器在 config.json 里声明，部署时自动带上。
+ *   两种触发方式传进来的 event 结构**完全不同**，入口处做归一化（见「入口适配」）。
  *
  * 关键设计
  *   * 解析逻辑**不在这里** —— markdown → JSON 由 Actions 端的 build/parse.py 负责，
@@ -26,13 +28,17 @@
  * 环境变量（云函数配置里设）
  *   SOURCE_REPO  构建产物所在仓库（Release 的宿主），形如 `yourname/htb-app`
  *   RELEASE_TAG  Release 标签，默认 content-latest
- *   BUDGET_MS    单次执行时间预算，默认 40000
- *   SYNC_TOKEN   可选。设了之后，调用方必须带 event.token 才能触发（防滥用）
+ *   BUDGET_MS    单次执行时间预算，默认 40000（**必须小于云函数超时**，见下）
+ *   SYNC_TOKEN   可选。设了之后，**公网 HTTP 调用**必须带 token 才能触发（防滥用）
+ *
+ * ⚠️ 部署时必须把云函数超时时间从默认的 3 秒改成 60 秒，
+ *    否则单次调用连一个分片都搬不完就会被平台掐断（表现为 500 / 超时，无日志）。
  */
 const cloud = require('wx-server-sdk')
 const crypto = require('crypto')
 const https = require('https')
 const http = require('http')
+const adapt = require('./adapt')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -91,19 +97,27 @@ function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex')
 }
 
-/* ---------------------------------------------------------------- 主流程 */
+/* ---------------------------------------------------------------- 入口 */
 
 exports.main = async (event) => {
-  const ev = event || {}
+  const raw = event || {}
+  const viaHttp = adapt.isHttpEvent(raw)
+  const result = await run(adapt.unwrapEvent(raw), viaHttp)
+  return viaHttp ? adapt.httpReply(result) : result
+}
+
+async function run(ev, viaHttp) {
   if (!SOURCE_REPO) {
     return { ok: false, error: 'NO_SOURCE_REPO', message: '请在云函数环境变量里设置 SOURCE_REPO' }
   }
-  if (SYNC_TOKEN && ev.token !== SYNC_TOKEN) {
+  // 令牌**只拦公网 HTTP 调用**。定时触发器由平台内部调起，event 里根本没有 token，
+  // 一并拦的话每日兜底会直接 BAD_TOKEN 失效。
+  if (viaHttp && SYNC_TOKEN && ev.token !== SYNC_TOKEN) {
     return { ok: false, error: 'BAD_TOKEN' }
   }
 
   const started = Date.now()
-  const budget = Number(ev.budgetMs || BUDGET_MS)
+  const budget = adapt.clampBudget(ev.budgetMs, BUDGET_MS)
 
   // 1) 拉远端 manifest（发布在上游 Release 里的公开资产，不需要任何密钥）
   let remote

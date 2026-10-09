@@ -66,10 +66,12 @@ jobs:
       - name: 解析构建（含 README 统计自校验）
         run: python build/parse.py
 
-      - name: 检索/合并逻辑单测
+      - name: 检索/合并/入口适配逻辑单测
         run: |
-          node build/tests/test_search.js
-          node build/tests/test_merge.js
+          for f in build/tests/test_*.js; do
+            echo "== $f"
+            node "$f"
+          done
 
       - name: 校验并摊平 Release 资产
         run: python build/stage_release.py

@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "dailySyncFallback",
+      "type": "timer",
+      "config": "0 17 5 * * * *"
+    }
+  ]
+}

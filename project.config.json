@@ -1,40 +1,81 @@
 {
-  "miniprogramRoot": "miniprogram/",
-  "cloudfunctionRoot": "cloudfunctions/",
-  "projectname": "HowToLiveBetter",
-  "description": "高性价比人生指南 · 微信小程序（内容源：github.com/eternity4719/HowToLiveBetter，CC BY 4.0）",
-  "appid": "touristappid",
-  "compileType": "miniprogram",
-  "libVersion": "3.5.0",
-  "setting": {
-    "urlCheck": true,
-    "es6": true,
-    "enhance": true,
-    "postcss": true,
-    "minified": true,
-    "minifyWXSS": true,
-    "minifyWXML": true,
-    "coverView": true,
-    "packNpmManually": false,
-    "packNpmRelationList": [],
-    "ignoreUploadUnusedFiles": true,
-    "checkSiteMap": false,
-    "uploadWithSourceMap": true,
-    "babelSetting": {
-      "ignore": [],
-      "disablePlugins": [],
-      "outputPath": ""
-    }
-  },
-  "condition": {
-    "miniprogram": {
-      "list": [
-        { "name": "首页", "pathName": "pages/index/index", "query": "", "scene": null },
-        { "name": "检索", "pathName": "pages/search/index", "query": "q=低钠盐", "scene": null },
-        { "name": "条目详情", "pathName": "pages/item-detail/index", "query": "sec=1&num=1", "scene": null },
-        { "name": "单节阅读", "pathName": "subpackages/read/pages/section-detail/index", "query": "sec=2", "scene": null },
-        { "name": "关于与许可", "pathName": "pages/about/index", "query": "", "scene": null }
-      ]
-    }
-  }
+    "miniprogramRoot": "miniprogram/",
+    "cloudfunctionRoot": "cloudfunctions/",
+    "projectname": "HowToLiveBetter",
+    "description": "高性价比人生指南 · 微信小程序（内容源：github.com/eternity4719/HowToLiveBetter，CC BY 4.0）",
+    "appid": "wx0bcbaa8e93eaefc5",
+    "compileType": "miniprogram",
+    "libVersion": "3.17.4",
+    "setting": {
+        "urlCheck": true,
+        "es6": true,
+        "enhance": true,
+        "postcss": true,
+        "minified": true,
+        "minifyWXSS": true,
+        "minifyWXML": true,
+        "coverView": true,
+        "packNpmManually": false,
+        "packNpmRelationList": [],
+        "ignoreUploadUnusedFiles": true,
+        "checkSiteMap": false,
+        "uploadWithSourceMap": true,
+        "babelSetting": {
+            "ignore": [],
+            "disablePlugins": [],
+            "outputPath": ""
+        },
+        "compileWorklet": false,
+        "uglifyFileName": false,
+        "localPlugins": false,
+        "disableUseStrict": false,
+        "useCompilerPlugins": false,
+        "condition": false
+    },
+    "condition": {
+        "miniprogram": {
+            "list": [
+                {
+                    "name": "首页",
+                    "pathName": "pages/index/index",
+                    "query": "",
+                    "scene": null
+                },
+                {
+                    "name": "检索",
+                    "pathName": "pages/search/index",
+                    "query": "q=低钠盐",
+                    "scene": null
+                },
+                {
+                    "name": "条目详情",
+                    "pathName": "pages/item-detail/index",
+                    "query": "sec=1&num=1",
+                    "scene": null
+                },
+                {
+                    "name": "单节阅读",
+                    "pathName": "subpackages/read/pages/section-detail/index",
+                    "query": "sec=2",
+                    "scene": null
+                },
+                {
+                    "name": "关于与许可",
+                    "pathName": "pages/about/index",
+                    "query": "",
+                    "scene": null
+                }
+            ]
+        }
+    },
+    "srcMiniprogramRoot": "miniprogram/",
+    "packOptions": {
+        "ignore": [],
+        "include": []
+    },
+    "editorSetting": {
+        "tabIndent": "insertSpaces",
+        "tabSize": 4
+    },
+    "simulatorPluginLibVersion": {}
 }

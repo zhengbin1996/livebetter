@@ -11,7 +11,7 @@ module.exports = {
   BOOK_NAME: '高性价比人生指南',
 
   // 云开发环境 ID。留空则用默认环境（只有一个环境时可留空）。
-  CLOUD_ENV: '',
+  CLOUD_ENV: 'wx0bcbaa8e93eaefc5',
 
   REPO_URL: 'https://github.com/eternity4719/HowToLiveBetter',
   LICENSE_NAME: 'CC BY 4.0',
