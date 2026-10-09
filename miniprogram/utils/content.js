@@ -22,6 +22,10 @@ const ROOT = `${wx.env.USER_DATA_PATH}/${config.LOCAL_ROOT}`
 const mem = Object.create(null)
 
 const CONCURRENCY = 4
+/** 单片下载失败时的重试次数（183 片里只要一片抖一下就整体中断，代价太大） */
+const SHARD_ATTEMPTS = 3
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 function globalData() {
   const app = getApp()
@@ -124,11 +128,32 @@ async function fetchFromCloud(rels, onEach) {
     while (cursor < queue.length) {
       const rel = queue[cursor++]
       const shard = byPath[rel]
-      const tmp = await cloud.download(shard.fileID)
-      const obj = JSON.parse(FS.readFileSync(tmp, 'utf8'))
-      writeLocal(rel, obj)
-      result[rel] = obj
-      if (typeof onEach === 'function') onEach(rel, shard)
+      // 单片重试：183 个分片里任何一片网络抖一下都会让 Promise.all 整体 reject，
+      // 没有重试的话「下载全书」几乎必然被一次抖动打断
+      let lastErr = null
+      for (let attempt = 1; attempt <= SHARD_ATTEMPTS; attempt++) {
+        try {
+          const tmp = await cloud.download(shard.fileID)
+          const obj = JSON.parse(FS.readFileSync(tmp, 'utf8'))
+          writeLocal(rel, obj)
+          result[rel] = obj
+          if (typeof onEach === 'function') onEach(rel, shard)
+          lastErr = null
+          break
+        } catch (e) {
+          lastErr = e
+          if (attempt < SHARD_ATTEMPTS) await sleep(attempt * 400)
+        }
+      }
+      if (lastErr) {
+        // 错误必须带上「是哪一片、原始原因」，否则 catch 到的人只能看到一句
+        // 「下载中断」，完全无法定位（已经真实发生过）
+        const raw = (lastErr && (lastErr.errMsg || lastErr.message)) || String(lastErr)
+        const err = new Error(`${rel}: ${raw}`)
+        err.code = 'SHARD_FAIL'
+        err.shard = rel
+        throw err
+      }
     }
   }
 
@@ -223,10 +248,28 @@ async function resolveItem(params) {
 /**
  * 下载全书：把所有客户端分片落到本地，之后完全离线可读。
  * 中断可续：已存在的分片会跳过。
+ *
+ * 失败分三类（err.code），调用方据此给出不同提示，别一律报「下载中断」：
+ *   NO_MANIFEST  云端还没有内容清单 —— 首次同步未完成（manifest/current 没翻转）
+ *   SYNCING      清单在、但部分分片还没有云存储 fileID —— 同步尚未写完
+ *   SHARD_FAIL   某一片重试 3 次仍然失败 —— message 里带片名与原始 errMsg
  */
 async function downloadAll(onProgress) {
   const shards = clientShards()
-  if (!shards.length) throw new Error('NO_MANIFEST')
+  if (!shards.length) {
+    const err = new Error('云端还没有内容清单（首次同步未完成）')
+    err.code = 'NO_MANIFEST'
+    throw err
+  }
+  // 缺 fileID 的分片会在 fetchFromCloud 里被静默跳过 —— 不拦的话会「假装下完」，
+  // 用户以为全书已离线，之后读到缺的节才发现是空的
+  const noID = shards.filter((s) => !s.fileID)
+  if (noID.length) {
+    const err = new Error(`清单里 ${noID.length}/${shards.length} 个分片还没有云存储 fileID（同步未完成）`)
+    err.code = 'SYNCING'
+    err.missing = noID.length
+    throw err
+  }
 
   const todo = shards.filter((s) => !hasLocal(s.path))
   const totalBytes = shards.reduce((n, s) => n + (s.size || 0), 0)

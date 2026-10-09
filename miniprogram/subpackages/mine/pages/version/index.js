@@ -71,7 +71,15 @@ Page({
       })
       wx.showToast({ title: '已存到本机', icon: 'success' })
     } catch (e) {
-      wx.showToast({ title: '下载中断，可续传', icon: 'none' })
+      console.error('[download] 下载全书失败：', e)
+      const tips = {
+        NO_MANIFEST: '云端内容还没同步好，稍后再试',
+        SYNCING: '云端内容同步中，稍后再试',
+      }
+      wx.showToast({
+        title: (e && tips[e.code]) || '下载中断，可续传',
+        icon: 'none',
+      })
     } finally {
       this.setData({ downBusy: false, progress: null })
       this.apply()

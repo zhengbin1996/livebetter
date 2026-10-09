@@ -250,6 +250,9 @@ curl -i -X POST 'https://<你复制的地址>' \
 | 定时器到了但没触发（走 2.4 路线）    | 触发器没上传（改完 `config.json` 要重新部署 / 上传触发器）；或 cron 少写一位 |
 | 定时器日志里全是 `skipped: true` | 正常 —— 已经是最新版本，每 10 分钟只是查一下         |
 | 云端测试报 `ret:-3 system error`（`apiIdentifier: scf/Invoke`） | **平台层**报错，函数没被触达。见 **附四** |
+| 小程序点「下载全书」提示「云端内容还没同步好」 | `manifest/current` 还没翻转（首次同步未完成）。去数据库看 `manifest` 集合里 `sync-<version>` 文档的 `done.length` / `failed.length` 判断进度；想快就云端测试连催几轮，或等定时器每 10 分钟自己跑 |
+| 提示「下载中断」且调试器 Console 有 `[download]` 开头日志 | 单个分片重试 3 次仍失败。日志里的 errMsg：`-501000`/资源不存在 ⇢ fileID 失效（重新部署 syncIngest 重跑一轮入云）；`-503000`/权限 ⇢ 云存储权限被改过，改回默认「所有用户可读，仅创建者可读写」 |
+| `getVersion` 返回 `NO_MANIFEST` + `document with _id current does not exist` | 集合存在、但 `current` 文档还没写入 = 同步一轮都没完成过（正常中间态）。若报的是 collection 不存在，则是 `manifest` 集合没建 |
 
 ### 2.7 顺手确认小程序端
 

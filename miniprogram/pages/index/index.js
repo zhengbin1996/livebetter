@@ -56,6 +56,9 @@ Page({
     const docs = e.docs || []
     const problems = e.problems || []
     const cache = content.localStats()
+    // manifest 还没从云端拿到（首次同步未翻转）时，localStats 会显示「0 / 0 节」，
+    // 那不是缓存状态，是「内容还没到云端」——文案要分开说
+    const cloudSyncing = app.globalData.cloudReady && !app.globalData.manifest
 
     this.setData({
       info: app.versionInfo(),
@@ -72,7 +75,9 @@ Page({
       cache,
       cacheText: cache.complete
         ? '已完整存到本机，断网也能读'
-        : `已存 ${cache.files} / ${cache.total} 节 · ${fmt.fmtBytes(cache.bytes)}`,
+        : cloudSyncing
+          ? '云端内容同步中，同步完成后可下载'
+          : `已存 ${cache.files} / ${cache.total} 节 · ${fmt.fmtBytes(cache.bytes)}`,
       labelMap: legend.tagLabels || null,
     })
   },
@@ -166,7 +171,16 @@ Page({
       this.apply()
       wx.showToast({ title: '全书已存到本机', icon: 'success' })
     } catch (err) {
-      wx.showToast({ title: '下载中断，可再点一次续传', icon: 'none' })
+      // 必须留痕：这个 catch 包着 183 次网络请求，不打印就完全没法定位
+      console.error('[download] 下载全书失败：', err)
+      const tips = {
+        NO_MANIFEST: '云端内容还没同步好，稍后再试',
+        SYNCING: '云端内容同步中，稍后再试',
+      }
+      wx.showToast({
+        title: (err && tips[err.code]) || '下载中断，可再点一次续传',
+        icon: 'none',
+      })
     } finally {
       this.setData({ downloading: false, progress: null })
     }
