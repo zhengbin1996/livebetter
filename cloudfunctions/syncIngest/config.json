@@ -1,9 +1,9 @@
 {
   "triggers": [
     {
-      "name": "dailySyncFallback",
+      "name": "pollRelease",
       "type": "timer",
-      "config": "0 17 5 * * * *"
+      "config": "0 */10 * * * *"
     }
   ]
 }

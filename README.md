@@ -89,9 +89,10 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
   3. node tests/*.js     检索与合并逻辑单测
   4. stage_release.py    校验 sha256，按资产命名规则摊平到 release/
   5. gh release upload   发布到固定标签 content-latest
-  6. trigger_sync.py     反复调 syncIngest 直到入云完成
+  6. trigger_sync.py     反复调 syncIngest 直到入云完成（**配了 HTTP 访问服务才走这一步**）
         ↓
 云函数 syncIngest
+    由定时触发器每 10 分钟叫醒一次（不依赖公网入口）：
     下载资产 → 校验 sha256 → 上传云存储 → 写进度 → 全部就位后**原子翻转** manifest/current
         ↓
 小程序启动
@@ -147,12 +148,17 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
 
 ### 4. 给 `syncIngest` 加触发方式
 
-- **HTTP 访问服务**：云开发控制台 → 云函数 → `syncIngest` → 触发方式 → 添加 HTTP 访问服务。
-  拿到形如 `https://<env-id>.service.tcloudbase.com/syncIngest` 的地址。
-- **定时触发器**（兜底）：每天跑一次，参数 `{"token":"<SYNC_TOKEN>"}`。
-  GitHub 抖动或 Actions 失败时，靠它把内容补上。
+- **定时触发器（默认，已配好，不用操作）**：`cloudfunctions/syncIngest/config.json` 里声明了
+  `0 */10 * * * *` = **每 10 分钟**查一次上游 Release，有新版本就入云，没有就直接跳过。
+  所以**入云不依赖任何公网入口**，不配下面的 HTTP 访问服务也能全自动同步。
+  （每 10 分钟而不是每天一次，是因为云函数单次 60 秒只能搬约 45 个分片，
+  一次同步要搬 183 个 ⇒ 需要多轮才能追平。）
+- **HTTP 访问服务（可选）**：想让 GitHub Actions 一构建完就入云、并在 Actions 日志里看到全过程时再加。
+  云开发控制台 → 环境管理 → HTTP 访问服务 → 开启页面顶部总开关 → 路由管理 → 新建
+  （资源类型 = 云函数、资源 = `syncIngest`、域名 = 默认域名、触发路径 = `/syncIngest`、
+  身份认证 = 关闭）。拿到形如 `https://<env-id>.service.tcloudbase.com/syncIngest` 的地址。
 
-### 5. 配仓库 Actions
+### 5. 配仓库 Actions（**只有加了 HTTP 访问服务才需要**）
 
 仓库 Settings → Secrets and variables → Actions：
 
@@ -162,7 +168,8 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
 | Secrets | `SYNC_TOKEN` | 与云函数 `SYNC_TOKEN` 一致（没设就留空） |
 
 然后手动跑一次 `同步上游内容` 工作流（`workflow_dispatch`），确认 Release 资产发布
-且 `syncIngest` 把内容搬完。之后每天 05:17 会自动跑。
+且 `syncIngest` 把内容搬完。之后每天北京时间 05:17 会自动构建。
+不配也没关系：`SYNC_URL` 为空时工作流只打印一条 warning 跳过入云，内容由定时触发器搬。
 
 > 工作流的 `push` 触发只监听 `build/**` 与工作流文件本身，所以改前端不会误触发内容同步。
 

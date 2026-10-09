@@ -21,7 +21,7 @@ function ok(name, cond, extra) {
 
 ok('callFunction 的 event 不算 HTTP', adapt.isHttpEvent({ token: 'x' }) === false)
 ok('空 event 不算 HTTP', adapt.isHttpEvent({}) === false)
-ok('定时触发器不算 HTTP', adapt.isHttpEvent({ Type: 'Timer', TriggerName: 'dailySyncFallback' }) === false)
+ok('定时触发器不算 HTTP', adapt.isHttpEvent({ Type: 'Timer', TriggerName: 'pollRelease' }) === false)
 ok(
   'HTTP 访问服务的 event 能识别',
   adapt.isHttpEvent({ path: '/syncIngest', httpMethod: 'POST', body: '{}' }) === true
