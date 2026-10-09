@@ -8,6 +8,7 @@
   5. 页面/组件里对 utils/* 的调用，是否都在该模块的 module.exports 里
   6. 主包体积是否超 2 MB（分包是否超 2 MB）
   7. 云函数 config.json 的定时触发器 cron 是否为合法的 7 段
+  8. WXSS 的选择器里是否混入了非 ASCII 字符（中文类名会让解析器直接崩）
 
 **为什么需要它**：小程序的相对路径是按「文件所在目录」算的，
 子包页面比主包页面深两层，从主包文件拷过去的 `../../` 会**静默少一层** ——
@@ -274,6 +275,45 @@ def check_cloudfunction_triggers() -> None:
     ok(f"触发器 {n} 个，cron 段数与字段检查通过")
 
 
+# ---------------------------------------------------------------- 8 wxss 选择器
+
+COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
+# 取每个 `{` 之前、且不含花括号的那段文本 —— 那就是选择器（或 @media 之类的参数）。
+SELECTOR_RE = re.compile(r"([^{}]*)\{")
+
+
+def check_wxss_selectors() -> None:
+    """WXSS 的选择器必须是纯 ASCII。
+
+    实测：`.tier--极高 { ... }` 会让开发者工具在小程序**编译期**直接报
+    `unexpected ... (13:8)` —— 行列正好指向那个中文字符，而错误信息
+    （说遇到了 `>`）**完全对不上实际内容**，极难反推。中文放在注释和
+    声明值里都没问题，只有选择器不行，所以这里按选择器检查。
+    """
+    log("[8] WXSS 选择器必须是 ASCII")
+    n = 0
+    bad = 0
+    for f in sorted(ROOT.rglob("*.wxss")):
+        if "components/mp-html" in rel(f):
+            continue  # 第三方内联组件，不查
+        src = COMMENT_RE.sub("", f.read_text(encoding="utf-8"))
+        for m in SELECTOR_RE.finditer(src):
+            sel = m.group(1).strip()
+            if not sel:
+                continue
+            n += 1
+            chars = sorted({c for c in sel if ord(c) > 127})
+            if chars:
+                line = src[: m.start()].count("\n") + 1
+                fail(
+                    f"{rel(f)} 第 {line} 行选择器含非 ASCII {''.join(chars)[:12]!r}"
+                    f"：{sel[:50]!r}（类名改用 ASCII，中文只放注释/文案）"
+                )
+                bad += 1
+    if not bad:
+        ok(f"检查 {n} 个选择器，全部为 ASCII")
+
+
 def main() -> int:
     log(f"检查 {ROOT}")
     check_app_json()
@@ -281,6 +321,7 @@ def main() -> int:
     check_calls()
     check_size()
     check_cloudfunction_triggers()
+    check_wxss_selectors()
     if problems:
         log(f"\n{len(problems)} 个问题")
         return 1

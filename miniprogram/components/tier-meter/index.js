@@ -12,4 +12,12 @@ Component({
       this.setData({ rank: fmt.tierRank(v) })
     },
   },
+  lifetimes: {
+    // 兜底：不同基础库对「属性 observers 在实例化时是否触发」的行为不完全一致，
+    // 这里再算一次，保证首屏配色就对（rank 决定 .tier.rN 的配色）。
+    attached() {
+      const rank = fmt.tierRank(this.data.level)
+      if (rank !== this.data.rank) this.setData({ rank })
+    },
+  },
 })

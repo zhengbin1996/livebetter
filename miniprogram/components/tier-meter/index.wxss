@@ -10,9 +10,14 @@
 }
 .tier.is-sm .i { width: 10rpx; height: 10rpx; }
 
-.tier--极高 .i.f { background: var(--green); border-color: var(--green); }
-.tier--高 .i.f { background: var(--amber); border-color: var(--amber); }
-.tier--一般 .i.f { background: var(--gray); border-color: var(--gray); }
+/* ⚠️ 选择器里**绝对不能出现中文**：WXSS 解析器会在该字符处直接报编译错误，
+   而且错误信息具有误导性（说遇到了 `>`，行列指向中文字符）。
+   这里也刻意不用 BEM 的 `--`，改用 `.tier.rN` 复合类 ——
+   和本文件 `.tier.is-sm` 是同一种写法，已确认能被解析。
+   rank：1 一般 / 2 高 / 3 极高；中文只留在文案里。 */
+.tier.r1 .i.f { background: var(--gray); border-color: var(--gray); }
+.tier.r2 .i.f { background: var(--amber); border-color: var(--amber); }
+.tier.r3 .i.f { background: var(--green); border-color: var(--green); }
 
 .ttl {
   font-family: var(--mono);

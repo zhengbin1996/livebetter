@@ -1,7 +1,7 @@
 <!-- 性价比刻度：三格方块。和证据徽章永远并排、各自独立显示，
      因为它们回答的是两个正交问题（数字可不可信 / 这件事值不值得做）。 -->
 <view class="tw">
-  <view class="tier tier--{{level}} {{sm ? 'is-sm' : ''}}">
+  <view class="tier r{{rank}} {{sm ? 'is-sm' : ''}}">
     <view class="i {{rank >= 1 ? 'f' : ''}}"></view>
     <view class="i {{rank >= 2 ? 'f' : ''}}"></view>
     <view class="i {{rank >= 3 ? 'f' : ''}}"></view>
