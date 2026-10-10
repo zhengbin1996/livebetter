@@ -51,7 +51,7 @@
     "backgroundColor": "@tabBgColor",
     "borderStyle": "@tabBorderColor",
     "list": [
-      { "pagePath": "pages/index/index", "text": "指南" },
+      { "pagePath": "pages/index/index", "text": "今天" },
       { "pagePath": "pages/search/index", "text": "检索" },
       { "pagePath": "pages/checkin/index", "text": "清单" },
       { "pagePath": "pages/about/index", "text": "关于" }

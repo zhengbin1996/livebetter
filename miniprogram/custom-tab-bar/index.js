@@ -2,7 +2,7 @@ Component({
   data: {
     selected: 0,
     list: [
-      { path: '/pages/index/index', text: '指南' },
+      { path: '/pages/index/index', text: '今天' },
       { path: '/pages/search/index', text: '检索' },
       { path: '/pages/checkin/index', text: '清单' },
       { path: '/pages/about/index', text: '关于' },

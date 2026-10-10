@@ -1,59 +1,82 @@
 <view class="page">
+  <!-- 行动看板入口：今天 / 稍后 / 已完成 / 收藏 -->
   <view class="seg">
-    <view class="s {{tab === 'checkin' ? 'on' : ''}}" data-tab="checkin" bindtap="switchTab">要做的</view>
-    <view class="s {{tab === 'fav' ? 'on' : ''}}" data-tab="fav" bindtap="switchTab">收藏</view>
-  </view>
-
-  <!-- 打卡进度 -->
-  <view class="prog" wx:if="{{tab === 'checkin' && total > 0}}">
-    <view class="pg-h">
-      <text class="pg-n serif">{{done}} / {{total}}</text>
-      <text class="pg-p mono">{{percent}}%</text>
-    </view>
-    <view class="bar"><view class="fill" style="width:{{percent}}%"></view></view>
-    <view class="pg-note">
-      这本书的用法是「挑一两条先做」，不是把 675 条做完。列在这里的才是你自己选的。
+    <view
+      class="s {{tab === t.key ? 'on' : ''}}"
+      wx:for="{{tabs}}"
+      wx:for-item="t"
+      wx:key="key"
+      data-tab="{{t.key}}"
+      bindtap="switchTab"
+    >
+      <text>{{t.label}}</text>
+      <text class="sn mono" wx:if="{{t.n}}">{{t.n}}</text>
     </view>
   </view>
 
-  <view class="seg seg--sub" wx:if="{{tab === 'checkin' && total > 0}}">
-    <view class="s {{filter === 'all' ? 'on' : ''}}" data-f="all" bindtap="setFilter">全部</view>
-    <view class="s {{filter === 'todo' ? 'on' : ''}}" data-f="todo" bindtap="setFilter">还没做</view>
-    <view class="s {{filter === 'done' ? 'on' : ''}}" data-f="done" bindtap="setFilter">做到了</view>
+  <!-- 节奏卡：连续天数 + 今天进度（收藏页不显示） -->
+  <view class="board" wx:if="{{tab !== 'fav'}}">
+    <view class="bd-l">
+      <view class="bd-n serif">{{streak}}</view>
+      <view class="bd-k mono">连续天数</view>
+    </view>
+    <view class="bd-r">
+      <view class="bd-t">
+        {{todayDone ? '今天已经做到 ' + todayDone + ' 条' : '今天还没有打勾'}}
+      </view>
+      <view class="bd-p">{{hint}}</view>
+    </view>
   </view>
 
-  <view class="label" wx:if="{{items.length}}">{{items.length}} 条</view>
-
-  <view class="clist" wx:if="{{items.length}}">
-    <view class="crow" wx:for="{{items}}" wx:key="sid">
-      <view class="cr-main" data-sid="{{item.sid}}" bindtap="goItem">
-        <view class="cr-h">
-          <text class="cr-sec mono">{{item.sec}} 节 · {{item.num}}</text>
-          <text class="cr-done mono" wx:if="{{item.checked}}">做到了</text>
+  <block wx:if="{{items.length}}">
+    <view class="clist">
+      <view class="crow" wx:for="{{items}}" wx:key="sid">
+        <view class="cr-main" data-sid="{{item.sid}}" bindtap="goItem">
+          <view class="cr-h">
+            <text class="cr-sec mono">{{item.sec}} 节 · {{item.num}}</text>
+            <text class="cr-tag mono" wx:if="{{tab === 'later' && !item.done}}">稍后</text>
+            <text class="cr-tag cr-tag--g mono" wx:if="{{item.done}}">做到了</text>
+          </view>
+          <view class="cr-t serif {{item.done ? 'is-done' : ''}}">{{item.title}}</view>
+          <view class="cr-p">{{item.preview}}</view>
         </view>
-        <view class="cr-t serif {{item.checked ? 'is-done' : ''}}">{{item.title}}</view>
-        <view class="cr-p">{{item.preview}}</view>
-      </view>
-      <view class="cr-acts">
-        <text
-          class="cr-a mono {{item.checked ? 'on' : ''}}"
-          wx:if="{{tab === 'checkin'}}"
-          data-sid="{{item.sid}}"
-          catchtap="toggleDone"
-        >{{item.checked ? '✓' : '○'}}</text>
-        <text class="cr-a mono" data-sid="{{item.sid}}" catchtap="remove">✕</text>
+        <view class="cr-acts">
+          <text
+            class="cr-a mono {{item.done ? 'on' : ''}}"
+            wx:if="{{tab === 'today' || tab === 'later' || tab === 'done'}}"
+            data-sid="{{item.sid}}"
+            catchtap="toggleDone"
+          >{{item.done ? '↺' : '○'}}</text>
+          <text
+            class="cr-a mono"
+            wx:if="{{tab === 'today'}}"
+            data-sid="{{item.sid}}"
+            catchtap="toLater"
+          >▸</text>
+          <text
+            class="cr-a mono"
+            wx:if="{{tab === 'later'}}"
+            data-sid="{{item.sid}}"
+            catchtap="toToday"
+          >↑</text>
+          <text class="cr-a mono" data-sid="{{item.sid}}" catchtap="remove">✕</text>
+        </view>
       </view>
     </view>
-  </view>
+
+    <view class="morewrap" wx:if="{{tab === 'today'}}">
+      <view class="btn btn--ghost btn--block" bindtap="goToday">再挑一条放进「今天」</view>
+    </view>
+  </block>
 
   <view class="empty" wx:elif="{{loading}}">
     <view class="p mono">正在整理…</view>
   </view>
 
   <view class="empty" wx:else>
-    <view class="h serif">{{tab === 'checkin' ? '清单还是空的' : '还没有收藏'}}</view>
+    <view class="h serif">{{tab === 'fav' ? '还没有收藏' : (tab === 'later' ? '「稍后」是空的' : '这里还是空的')}}</view>
     <view class="p">
-      在任一条建议的详情页底部点「加进清单」或「收藏」，就会出现在这里。<br />
+      在任一条建议的详情页底部点「今天做」或「稍后」，就会出现在这里。<br />
       数据存在你自己的账号下，换手机也在；断网时也能读能改。
     </view>
     <view class="btnrow">
@@ -63,6 +86,6 @@
   </view>
 
   <view class="disclaimer">
-    清单位于你的 openid 下，不需要登录也不采集其他信息。断网时的修改会在联网后自动补传。
+    清单存在你的 openid 下，不需要登录也不采集其他信息。断网时的修改会在联网后自动补传。
   </view>
 </view>

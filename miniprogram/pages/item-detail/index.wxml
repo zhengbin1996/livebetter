@@ -17,15 +17,9 @@
       <text class="flag flag--a" wx:if="{{item.todo}}">待核实</text>
     </view>
 
-    <!-- 成本签：五格等宽表 -->
-    <cost-tag
-      tag="{{item.tag}}"
-      label-map="{{labelMap}}"
-      tappable="{{true}}"
-      bindcelltap="onCellTap"
-    />
-
-    <!-- 说人话：全站唯一一处左侧强调边，视觉最高位 -->
+    <!-- 说人话：全站唯一一处左侧强调边，视觉最高位。
+         提到标题正下方 —— 用户打开一条建议，第一眼要看的是「结论是什么」，
+         而不是成本签和等级标记。 -->
     <view class="dplain">
       <text class="k">说人话</text>
       <view class="v">
@@ -36,6 +30,16 @@
           bindlinktap="onLinkTap"
         />
       </view>
+    </view>
+
+    <!-- 成本签：五格等宽表 -->
+    <view class="costwrap">
+      <cost-tag
+        tag="{{item.tag}}"
+        label-map="{{labelMap}}"
+        tappable="{{true}}"
+        bindcelltap="onCellTap"
+      />
     </view>
 
     <!-- 证据等级 + 性价比，两个正交标注并排 -->
@@ -106,15 +110,19 @@
     </view>
   </view>
 
-  <!-- 底部操作条 -->
+  <!-- 底部操作条：一个主按钮（今天做）+ 两个次级动作 -->
   <view class="actbar">
     <view class="act" bindtap="onFav">
       <text class="ai {{fav ? 'on' : ''}}">{{fav ? '★' : '☆'}}</text>
       <text class="at {{fav ? 'on' : ''}}">{{fav ? '已收藏' : '收藏'}}</text>
     </view>
-    <view class="act" bindtap="onCheckin">
-      <text class="ai {{checkin.done ? 'on' : ''}}">{{checkin.done ? '✓' : '＋'}}</text>
-      <text class="at {{checkin.done ? 'on' : ''}}">{{checkin.done ? '已记进清单' : '加进清单'}}</text>
+    <view class="act" bindtap="onLater">
+      <text class="ai {{listState === 'later' ? 'on' : ''}}">{{listState === 'later' ? '✓' : '▸'}}</text>
+      <text class="at {{listState === 'later' ? 'on' : ''}}">{{listState === 'later' ? '在稍后' : '稍后'}}</text>
+    </view>
+    <view class="act act--primary" bindtap="onCheckin">
+      <text class="ai {{listState === 'today' || listState === 'done' ? 'on' : ''}}">{{listState === 'today' || listState === 'done' ? '✓' : '＋'}}</text>
+      <text class="at {{listState === 'today' || listState === 'done' ? 'on' : ''}}">{{listState === 'done' ? '今天做到了' : (listState === 'today' ? '在今天' : '今天做')}}</text>
     </view>
   </view>
 

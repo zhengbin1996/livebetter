@@ -80,6 +80,58 @@ def ratio_of(cost_tag: dict) -> tuple[str, int]:
     return "一般", cs
 
 
+# ---------------------------------------------------------------- 问题分组
+
+# README 的 34 个问题是**一条平铺列表**，用户按「自己的处境」找比按「书的节」找自然得多。
+# 这里按处境把 34 节（= 34 个问题）分五组，只影响导航，**不改动任何内容文字**。
+# secs 是节号（与 problems[].sec、sections[].sec 同源）；tone 对应设计系统的语义色。
+# 覆盖检查：五组 secs 的并集必须等于全部节号，否则构建直接报错（见 main()）。
+PROBLEM_GROUPS = [
+    {
+        "key": "body",
+        "name": "身体与健康",
+        "tone": "green",
+        "secs": [1, 2, 16, 24, 28, 33, 34],
+    },
+    {
+        "key": "habit",
+        "name": "日常习惯",
+        "tone": "green",
+        "secs": [3, 4, 6, 22],
+    },
+    {
+        "key": "money",
+        "name": "钱与工作",
+        "tone": "amber",
+        "secs": [5, 7, 12, 15, 19, 23, 26],
+    },
+    {
+        "key": "family",
+        "name": "关系与家庭",
+        "tone": "amber",
+        "secs": [10, 17, 18, 20, 25, 27, 29, 30, 31, 32],
+    },
+    {
+        "key": "law",
+        "name": "法律与风险",
+        "tone": "gray",
+        "secs": [8, 9, 11, 13, 14, 21],
+    },
+]
+
+
+def group_of_sec(sec, all_secs=None) -> str | None:
+    """节号 → 分组的 key。未知节号返回 None（宁可不分组，也不瞎猜）。"""
+    if sec is None:
+        return None
+    for g in PROBLEM_GROUPS:
+        if sec in g["secs"]:
+            return g["key"]
+    if all_secs and sec not in all_secs:
+        return None
+    return None
+
+
 # ---------------------------------------------------------------- 版本
 
 def resolve_commit() -> tuple[str, str]:
@@ -420,6 +472,17 @@ def main() -> int:
             seen[it["sid"]] = it["title"]
     log(f"    {len(sections)} 节 / {total_items} 条")
 
+    # 分组的硬不变量：五组必须**恰好**覆盖全部节。
+    # 上游加一节或多一节，这里就会失配 —— 让 CI 红，而不是让「找问题」
+    # 静默漏掉没有归属的条目（那种问题界面上完全看不出来）。
+    sec_numbers = {s["sec"] for s in sections}
+    grouped = {n for g in PROBLEM_GROUPS for n in g["secs"]}
+    if sec_numbers != grouped:
+        log(f"    !! 问题分组与节号对不上：节里有而分组没有 {sorted(sec_numbers - grouped)}、"
+            f"分组里有而节里没有 {sorted(grouped - sec_numbers)} —— 请更新 PROBLEM_GROUPS")
+        return 1
+    log(f"    问题分组 {len(PROBLEM_GROUPS)} 组，覆盖全部 {len(sec_numbers)} 节")
+
     index = {s["sec"]: s["items"] for s in sections}
 
     # ---- 2. 交叉引用
@@ -531,6 +594,9 @@ def main() -> int:
     # ---- 4. README 元数据
     log("[4/7] 解析 README 元数据")
     meta = parse_readme(readme)
+    # 给每个问题补上分组 key（找不到归属的会是 None，界面会落到「其它」兜底组）
+    for p in meta["problems"]:
+        p["group"] = group_of_sec(p.get("sec"))
     log(f"    问题表 {len(meta['problems'])} 行 / 目录 {len(meta['toc'])} 节 / "
         f"术语 {len(terms)} 条 / 怎么读 {len(meta.get('howto', []))} 条")
 
@@ -743,6 +809,32 @@ def main() -> int:
             for s in sections
         ],
         "problems": meta["problems"],
+        # 分组元信息（名称/语义色/该组问题数），供首屏「找问题」分组渲染
+        "problemGroups": [
+            {
+                "key": g["key"], "name": g["name"], "tone": g["tone"],
+                "count": sum(1 for p in meta["problems"] if p.get("group") == g["key"]),
+            }
+            for g in PROBLEM_GROUPS
+        ],
+        # 「今天做一条」候选池：性价比极高的条目（排除标注争议的）。
+        # 放进主包是为了**离线也能推荐** —— 否则打开首屏要先下一个分片才能显示一条。
+        # 字段刻意压到最短（首屏只用到标题/摘要/成本签），整体约 30 KB。
+        "picks": [
+            {
+                "sid": it["sid"], "s": s["sec"], "st": s["secTitle"], "n": it["num"],
+                "t": it["title"], "pr": it["preview"], "e": it["evidenceLevel"],
+                "tag": {
+                    "money": it["tag"].get("money", ""),
+                    "time": it["tag"].get("time", ""),
+                    "will": it["tag"].get("will", ""),
+                    "benefit": it["tag"].get("benefit", ""),
+                    "caliber": it["tag"].get("caliber", ""),
+                },
+            }
+            for s in sections for it in s["items"]
+            if it["ratio"] == "极高" and not it["dispute"]
+        ],
         "glossary": terms,
         "legend": {
             "evidence": meta["evidence"],

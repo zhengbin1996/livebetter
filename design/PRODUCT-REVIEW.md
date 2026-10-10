@@ -282,3 +282,22 @@ S2/S3 缺。
 | `design/prototype.html` | 高保真可交互原型（6 屏 + 浅/暗切换 + 设计规范） |
 | `miniprogram/custom-tab-bar/index.wxss` | 暗色 tabBar 修复（已上线） |
 | `build/check_miniprogram.py` | 静态检查第 [9] 项（tabBar 变量自给，已上线） |
+
+---
+
+## 9. 第一批落地状态（2026-10-10）
+
+排期表里的第 1–4 项（P0）已落地：
+
+| # | 事项 | 落地位置 | 说明 |
+| --- | --- | --- | --- |
+| 1 | 首页重构为「今天」 | `miniprogram/pages/index/*` | 离线状态条常驻顶部；「今天做一条」首屏大卡（换一条 / 一键加进清单 / 读全文）；「找问题」提到检索框之上；「按节读」降为次级 |
+| 2 | 问题按处境分五组 | `build/parse.py` 的 `PROBLEM_GROUPS` + `essentials.problemGroups` | 只影响导航，不动上游文字；五组必须**恰好覆盖全部节**，否则构建失败 |
+| 3 | 详情页结论上移 | `miniprogram/pages/item-detail/*` | 「说人话」提到标题正下方；底部固定「收藏 / 稍后 / 今天做」，只保留一个主按钮 |
+| 4 | 清单改行动看板 | `miniprogram/pages/checkin/*` + `utils/store.js` | 今天 / 稍后 / 已完成 / 收藏 四段；连续天数由完成日记推导（今天没做不算断签）；删掉误导性的 `n / m` 进度条 |
+
+配套：`essentials.picks`（性价比极高且无争议的条目，随主包内置 ⇒ 离线也能推）、
+`build/tests/test_store.js`（清单分桶与连续天数的行为测试，含故意写错的对照）。
+
+未做：5–9（离线全屏流程 / 检索分层 / 我的页重排 / 埋点 / 字号阶梯）与 P2 两项。
+

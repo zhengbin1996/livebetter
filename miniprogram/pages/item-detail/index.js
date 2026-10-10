@@ -25,6 +25,8 @@ Page({
     refsIn: [],
     fav: false,
     checkin: null,
+    /** 清单状态：none | today | later | done */
+    listState: 'none',
     labelMap: null,
     glossaryTerm: '',
     glossShow: false,
@@ -48,6 +50,7 @@ Page({
       }
       const f = item.fields || {}
       const legend = (app.globalData.essentials || {}).legend || {}
+      const rec = store.getCheckin(item.sid)
       this.setData({
         loading: false,
         offline: false,
@@ -64,7 +67,8 @@ Page({
         refsOut: item.refs || [],
         refsIn: item.refIn || [],
         fav: store.isFavorite(item.sid),
-        checkin: store.getCheckin(item.sid),
+        checkin: rec,
+        listState: this.listStateOf(rec),
       })
       // 等级与档位的释义来自 README 原文，保证和书上一致
       const iso = (legend.evidence || []).find((e) => e.level === item.evidenceLevel)
@@ -136,11 +140,45 @@ Page({
     wx.showToast({ title: on ? '已收藏' : '已取消收藏', icon: 'none' })
   },
 
+  listStateOf(rec) {
+    if (!rec) return 'none'
+    if (rec.done) return 'done'
+    return rec.plan === 'later' ? 'later' : 'today'
+  },
+
+  syncListState() {
+    const rec = store.getCheckin(this.data.item.sid)
+    this.setData({ checkin: rec, listState: this.listStateOf(rec) })
+  },
+
+  /** 主按钮：加进「今天」/ 从「今天」移出 / 把已完成的标回今天 */
   onCheckin() {
-    const cur = this.data.checkin || { done: false }
-    const next = store.setCheckin(this.data.item.sid, { done: !cur.done })
-    this.setData({ checkin: next })
-    wx.showToast({ title: next.done ? '已记进清单' : '已移出清单', icon: 'none' })
+    const sid = this.data.item.sid
+    const s = this.data.listState
+    if (s === 'today') {
+      store.removeCheckin(sid)
+      wx.showToast({ title: '已移出清单', icon: 'none' })
+    } else if (s === 'done') {
+      store.setCheckin(sid, { done: false, plan: 'today' })
+      wx.showToast({ title: '已标回「今天做」', icon: 'none' })
+    } else {
+      store.setCheckin(sid, { done: false, plan: 'today' })
+      wx.showToast({ title: s === 'later' ? '已移到「今天做」' : '已加进清单 · 今天', icon: 'none' })
+    }
+    this.syncListState()
+  },
+
+  /** 次级动作：放到「稍后」（不做但先记着） */
+  onLater() {
+    const sid = this.data.item.sid
+    if (this.data.listState === 'later') {
+      store.removeCheckin(sid)
+      wx.showToast({ title: '已移出清单', icon: 'none' })
+    } else {
+      store.setCheckin(sid, { done: false, plan: 'later' })
+      wx.showToast({ title: '已放到「稍后」', icon: 'none' })
+    }
+    this.syncListState()
   },
 
   onCopySource() {

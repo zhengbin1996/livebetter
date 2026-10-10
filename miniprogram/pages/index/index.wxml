@@ -1,12 +1,40 @@
 <view class="page">
-  <!-- 书封区：书名用宋体，给内容一层「文献」质感 -->
+  <!-- 离线状态条：常驻首屏顶部。这是产品最强的差异点，不该藏在第 6 屏 -->
+  <view class="ostrip" bindtap="onOfflineTap">
+    <text class="odot {{offline.tone}}"></text>
+    <text class="ostrip-t">{{offline.text}}</text>
+    <text class="ostrip-a mono" wx:if="{{offline.action}}">{{offline.action}} ›</text>
+  </view>
+
+  <!-- 书封区：留书名与一句定位，主角让给下面那张卡 -->
   <view class="masthead">
     <view class="bk">{{bookName}}</view>
     <view class="tag">{{tagline}}</view>
     <view class="stats mono">{{statLine}}</view>
   </view>
 
-  <version-bar info="{{info}}" />
+  <!-- 今天做一条：首屏第一眼就要回答「我今天该做哪一条」 -->
+  <view class="pick" wx:if="{{pick}}">
+    <view class="pick-h" bindtap="onPickOpen">
+      <text class="pick-k mono">今天做一条</text>
+      <text class="pick-src mono">随机一条 · 性价比极高</text>
+    </view>
+
+    <view class="pick-t serif" bindtap="onPickOpen">{{pick.t}}</view>
+    <view class="pick-p" bindtap="onPickOpen">{{pick.pr}}</view>
+
+    <view class="pick-cost">
+      <cost-tag tag="{{pick.tag}}" label-map="{{labelMap}}" size="sm" />
+    </view>
+
+    <view class="pick-acts">
+      <view class="btn btn--ghost" catchtap="onPickShuffle">换一条</view>
+      <view
+        class="btn {{pickState === 'none' ? 'btn--primary' : 'btn--on'}}"
+        catchtap="onPickToggle"
+      >{{pickState === 'none' ? '加进清单' : (pickState === 'done' ? '今天做到了 ✓' : '已在清单 ✓')}}</view>
+    </view>
+  </view>
 
   <!-- 检索入口 -->
   <view class="searchbar">
@@ -22,27 +50,33 @@
     />
   </view>
 
-  <!-- 按问题找 -->
-  <view class="label">按问题找 · {{problems.length}} 个</view>
-  <view class="plist">
-    <view
-      class="prow"
-      wx:for="{{visibleProblems}}"
-      wx:key="q"
-      data-sec="{{item.sec}}"
-      bindtap="onProblem"
-    >
-      <text class="q">{{item.q}}</text>
-      <text class="go mono">{{item.sec}} 节 ›</text>
+  <!-- 找问题：按处境分五组，先扫 5 个组名，再展开到具体问题 -->
+  <view class="label">找问题 · 按你的处境</view>
+  <view class="glist">
+    <view class="grow" wx:for="{{groups}}" wx:for-item="g" wx:key="key">
+      <view class="ghead" data-key="{{g.key}}" bindtap="toggleGroup">
+        <text class="gdot {{g.tone}}"></text>
+        <text class="gname">{{g.name}}</text>
+        <text class="gcount mono">{{g.count}}</text>
+        <text class="gcaret mono">{{g.open ? '−' : '+'}}</text>
+      </view>
+      <view class="gbody" wx:if="{{g.open}}">
+        <view
+          class="prow"
+          wx:for="{{g.problems}}"
+          wx:for-item="p"
+          wx:key="q"
+          data-sec="{{p.sec}}"
+          bindtap="onProblem"
+        >
+          <text class="q">{{p.q}}</text>
+          <text class="go mono">{{p.sec}} 节 ›</text>
+        </view>
+      </view>
     </view>
   </view>
-  <view
-    class="btn btn--ghost more"
-    bindtap="toggleProblems"
-    wx:if="{{problems.length > 6}}"
-  >{{problemsAll ? '收起' : '看全部 ' + problems.length + ' 个问题'}}</view>
 
-  <!-- 按节读 -->
+  <!-- 按节读：老用户的路径保留，只是降到次一级 -->
   <view class="label">按节读</view>
   <view class="rowcard" bindtap="goSections">
     <view class="rc-l">
@@ -108,7 +142,7 @@
   <view class="rowcard" bindtap="onClearCache" wx:if="{{!downloading && cache.files > 0}}">
     <view class="rc-l">
       <view class="rc-h serif">清空本机内容缓存</view>
-      <view class="rc-p">收藏与打卡不受影响</view>
+      <view class="rc-p">收藏与清单不受影响</view>
     </view>
     <text class="mono t3">›</text>
   </view>

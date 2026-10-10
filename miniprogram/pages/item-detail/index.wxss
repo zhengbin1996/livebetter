@@ -15,7 +15,7 @@
 .marks {
   display: flex;
   gap: 20rpx;
-  margin: 32rpx 0 40rpx;
+  margin: 24rpx 0 40rpx;
 }
 .marks .mk {
   flex: 1;
@@ -73,12 +73,16 @@
   line-height: 1.5;
 }
 
+/* 成本签（说人话与等级标记之间） */
+.costwrap { margin-bottom: 4rpx; }
+
 /* 底部操作条 */
 .actbar {
   position: fixed;
   left: 0; right: 0;
   bottom: 0;
   display: flex;
+  gap: 14rpx;
   background: rgba(251, 251, 249, .96);
   backdrop-filter: blur(12rpx);
   border-top: 1rpx solid var(--line);
@@ -88,6 +92,21 @@
 @media (prefers-color-scheme: dark) {
   .actbar { background: rgba(24, 27, 29, .96); }
 }
+.actbar .act {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  height: 84rpx;
+}
+/* 每个屏幕只允许一个主按钮 */
+.actbar .act--primary {
+  background: var(--green-bg);
+  border-radius: 12rpx;
+}
+.actbar .act--primary .ai,
+.actbar .act--primary .at { color: var(--green); }
 .actbar .act {
   flex: 1;
   display: flex;
