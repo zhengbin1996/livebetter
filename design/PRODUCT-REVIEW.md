@@ -274,15 +274,39 @@ S2/S3 缺。
 
 ---
 
-## 附：本次交付物
+## 附一：原型演进与交付物
 
-| 文件 | 内容 |
-| --- | --- |
-| `design/PRODUCT-REVIEW.md` | 本文（诊断 + 架构 + 指标 + 排期） |
-| `design/prototype.html` | 高保真可交互原型（6 屏 + 浅/暗切换 + 设计规范） |
-| `design/preview-shipped.png` | 第一批落地后的四个屏幕（今天 · 浅/暗、条目详情、清单）
-| `miniprogram/custom-tab-bar/index.wxss` | 暗色 tabBar 修复（已上线） |
-| `build/check_miniprogram.py` | 静态检查第 [9] 项（tabBar 变量自给，已上线） |
+三版原型的分工（**新看 `prototype-v3.html`，它是当前的验收基准**）：
+
+| 文件 | 形态 | 用途 |
+| --- | --- | --- |
+| `design/prototype.html` | 12 屏纯静态并排，无 JS | 第一版结构探索，保留 |
+| `design/prototype-v2.html` | 6 屏可交互（840 行、27 处 onclick、浅/暗切换、模拟下载） | 交互演示，保留 |
+| **`design/prototype-v3.html`** | **4 主 tab + 1 暗色样本，静态并排、零 JS、零外链** | **当前验收基准** |
+| `design/preview-v3.png` | v3 的 2× 截图（3704×2060） | 可直接分享的单张图 |
+| `design/preview-shipped.png` | 第一批落地后的真机截图 | 上线留档 |
+| `design/PRODUCT-REVIEW.md` | 本文 | 诊断 + 架构 + 指标 + 排期 |
+| `miniprogram/custom-tab-bar/index.wxss` | 暗色 tabBar 修复（已上线） | 代码 |
+| `build/check_miniprogram.py` | 静态检查第 [9] 项（tabBar 变量自给，已上线） | 代码 |
+
+### 为什么 v3 要「去交互」
+
+v2 里超过一半的交互（浅/暗切换、换一条、加清单、打勾、模拟下载）是为了**演示**，
+不是为了**表达设计** —— 评审时要先点几下才看得清一屏长什么样。
+v3 的目标是**一屏看完**：双击 HTML 即看，无需服务器、无需联网。
+
+v3 的硬约束（每次改动都要守住）：
+
+1. **零 `<script>`、零外链**（含字体，走系统字体栈）；
+2. 机身内部按 375pt 逻辑宽书写（数值 = 小程序 rpx ÷ 2），
+   `transform: scale(.853333)` 缩到 320px 展示 ⇒ 字号间距可以**直接和 `pages/**/index.wxss` 对读**；
+3. 类名全 ASCII（沿用项目习惯，避免以后挪进小程序踩 WXSS 中文选择器的坑）；
+4. 数据一律取自 `miniprogram/data/essentials.js` 的真实条目，不编造。
+
+> 踩过的坑：`<figure>` 的 UA 样式用的是**逻辑属性** `margin-inline: 40px`，
+> `* { margin: 0 }` 的物理 margin 覆盖不掉 ⇒ 每台机身被撑到 420px、第 5 台挤出画板。
+> 必须显式写 `figure, figcaption { margin: 0; }`。
+> 排查方法：**解码 PNG 扫描一行像素**量机身边界，比目测缩略图可靠。
 
 ---
 

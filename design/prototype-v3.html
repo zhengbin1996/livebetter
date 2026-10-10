@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>高性价比人生指南 · 界面原型 v3（静态并排）</title>
+<style>
+/* ============================================================
+   原型 v3：静态并排 · 零 JS · 零外链
+   设计依据：design/PRODUCT-REVIEW.md §6（色板 / 字阶 / 组件规范）
+   数据来源：miniprogram/data/essentials.js（真实条目，非编造）
+   机身内部尺寸按 375pt 逻辑宽书写（数值 = 小程序 rpx ÷ 2），
+   整体用 transform: scale() 缩到 320px 展示，所以字号与间距
+   可以直接和 pages/**/index.wxss 对读。
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* figure 的 UA 样式用的是逻辑属性（margin-inline: 40px），* 的物理 margin 覆盖不掉，
+   不显式清零每台机身会被撑到 420px、第 5 台挤出画板。 */
+figure, figcaption { margin: 0; }
+
+:root {
+  --paper: #F4F5F2; --card: #FFFFFF; --line: #E3E4DF; --line2: #EDEEE9;
+  --ink: #191D1C; --ink2: #5C635F; --ink3: #8C918D;
+  --green: #2F5D50; --green-bg: #EAF0EC;
+  --amber: #A9761B; --amber-bg: #F7F0E2;
+  --gray: #8C918D; --gray-bg: #EDEEEA;
+  --serif: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif CJK SC", serif;
+  --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+body {
+  background: #E9EAE6;
+  font-family: var(--sans);
+  color: var(--ink);
+  padding: 28px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------- 画板与页眉 ---------------- */
+.artboard {
+  width: 1760px; margin: 0 auto;
+  background: #FFFFFF; border: 1px solid var(--line); border-radius: 16px;
+  padding: 30px 36px 26px;
+}
+.hd { padding-bottom: 16px; margin-bottom: 22px; border-bottom: 1px solid var(--line2); }
+.hd h1 { font-family: var(--serif); font-size: 24px; font-weight: 600; letter-spacing: .01em; }
+.hd .sub { font-family: var(--mono); font-size: 12px; color: var(--ink3); margin-top: 8px; letter-spacing: .01em; }
+
+/* ---------------- 机身 ---------------- */
+.row { display: flex; gap: 20px; align-items: flex-start; }
+.dev { width: 320px; }
+.frame {
+  position: relative; width: 320px; height: 700px;
+  border: 1px solid var(--line); border-radius: 22px; overflow: hidden;
+  background: var(--paper);
+}
+.dev--dark .frame { background: #15181A; border-color: #2C3135; }
+.cap { margin-top: 12px; text-align: center; font-family: var(--mono); font-size: 11.5px; color: var(--ink2); }
+.cap b { font-weight: 600; color: var(--ink); }
+.cap i { display: block; font-style: normal; font-size: 10px; color: var(--ink3); margin-top: 2px; }
+
+/* 屏内：375pt 逻辑宽，缩到 320px */
+.screen {
+  width: 375px; height: 821px;
+  transform: scale(.853333); transform-origin: top left;
+  display: flex; flex-direction: column;
+  background: var(--paper); color: var(--ink);
+  font-family: var(--sans); font-size: 14px; line-height: 1.6;
+}
+.screen.dark {
+  --paper: #15181A; --card: #1D2124; --line: #2C3135; --line2: #23282B;
+  --ink: #E9EBE9; --ink2: #A9B0AB; --ink3: #8F9791;
+  --green: #7FBFA6; --green-bg: #1E2B27;
+  --amber: #D6A855; --amber-bg: #2C2517;
+  --gray: #8C918D; --gray-bg: #262A29;
+}
+
+.nav {
+  position: relative; flex: none; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-bottom: 1px solid var(--line2);
+}
+.nav .nav-t { font-size: 15px; font-weight: 600; color: var(--ink); }
+.capsule {
+  position: absolute; right: 12px; top: 12px;
+  width: 52px; height: 20px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); display: flex; align-items: center; justify-content: center; gap: 3px;
+}
+.capsule i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink3); }
+.capsule b { width: 9px; height: 9px; border-radius: 50%; border: 1.2px solid var(--ink3); margin-left: 2px; }
+
+.body { flex: 1; overflow: hidden; padding: 0 20px; }
+
+/* ---------------- 底部 tabBar ---------------- */
+.tabbar {
+  flex: none; height: 54px; display: flex;
+  border-top: 1px solid var(--line); background: var(--card);
+}
+.tabbar .tb {
+  position: relative; flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-family: var(--mono); font-size: 10px; color: var(--ink3);
+}
+.tabbar .tb .mk { width: 9px; height: 9px; border-radius: 50%; border: 1.4px solid var(--ink3); }
+.tabbar .tb.on { color: var(--green); }
+.tabbar .tb.on .mk { border-color: var(--green); background: var(--green-bg); }
+.tabbar .bdg {
+  position: absolute; top: 9px; left: 50%; margin-left: 6px;
+  min-width: 13px; height: 13px; padding: 0 3px; border-radius: 7px;
+  background: var(--green); color: #fff; font-family: var(--mono);
+  font-size: 8.5px; line-height: 13px; text-align: center;
+}
+
+/* ---------------- 通用原子 ---------------- */
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-family: var(--mono); font-size: 10.5px; color: var(--ink3); letter-spacing: .06em; margin: 22px 0 9px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 40px; padding: 0 18px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--card);
+  font-family: var(--mono); font-size: 12px; color: var(--ink2);
+}
+.btn.pri { background: var(--green); border-color: var(--green); color: #FFFFFF; }
+.btn.ghost { background: transparent; }
+.btn.block { display: flex; width: 100%; }
+
+/* 成本签：五格等宽表（产品指纹，保留） */
+.cost { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--card); }
+.cost .c { flex: 1; min-width: 0; padding: 6px 2px; text-align: center; border-right: 1px solid var(--line2); }
+.cost .c:last-child { border-right: none; }
+.cost .ck { display: block; font-family: var(--mono); font-size: 8.5px; color: var(--ink3); letter-spacing: .04em; }
+.cost .cv { display: block; font-size: 10px; color: var(--ink2); margin-top: 2px; }
+.cost .cv.zero { color: var(--green); background: var(--green-bg); border-radius: 3px; }
+
+/* 证据徽章 + 性价比条 */
+.ev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 4px;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  background: var(--green); color: #fff;
+}
+.ev.b { background: var(--amber); }
+.ev.c { background: var(--gray); }
+.tier { display: inline-flex; gap: 2px; align-items: center; }
+.tier i { width: 5px; height: 11px; border-radius: 1px; background: var(--line); }
+.tier.r3 i { background: var(--green); }
+.tier.r2 i:nth-child(-n+2) { background: var(--green); }
+.tier.r1 i:first-child { background: var(--green); }
+.rt { font-size: 11px; color: var(--ink3); }
+
+/* 分段控件 */
+.seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--card); margin: 12px 0; }
+.seg .s {
+  flex: 1; text-align: center; padding: 10px 0;
+  font-family: var(--mono); font-size: 12px; color: var(--ink3);
+}
+.seg .s.on { background: var(--green-bg); color: var(--green); }
+.seg .s .sn { font-size: 10px; opacity: .8; margin-left: 3px; }
+
+/* 行卡片 */
+.rowcard {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 13px 14px; margin-bottom: 8px;
+}
+.rowcard .rc-l { flex: 1; min-width: 0; }
+.rowcard .rc-h { font-family: var(--serif); font-size: 15px; font-weight: 600; line-height: 1.45; color: var(--ink); }
+.rowcard .rc-p { font-size: 11.5px; color: var(--ink3); line-height: 1.6; margin-top: 3px; }
+.rowcard .rc-a { flex: none; font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+
+/* ================= ① 今天 ================= */
+.ostrip {
+  display: flex; align-items: center; gap: 7px; margin-top: 10px;
+  padding: 9px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 7px;
+}
+.ostrip .odot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex: none; }
+.ostrip .ot { flex: 1; font-size: 11.5px; color: var(--ink2); }
+.ostrip .oa { font-family: var(--mono); font-size: 11px; color: var(--green); flex: none; }
+
+.masthead { padding: 16px 0 4px; }
+.masthead .bk { font-family: var(--serif); font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: .01em; }
+.masthead .tag { font-size: 12.5px; color: var(--ink2); line-height: 1.7; margin-top: 7px; }
+.masthead .stats { font-family: var(--mono); font-size: 10.5px; color: var(--ink3); margin-top: 8px; }
+
+.pick {
+  margin-top: 14px; background: var(--card); border: 1px solid var(--line);
+  border-left: 3px solid var(--green); border-radius: 4px 10px 10px 4px;
+  padding: 14px 15px 12px;
+}
+.pick .ph { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.pick .pk { font-family: var(--mono); font-size: 10.5px; color: var(--green); letter-spacing: .08em; }
+.pick .ps { font-family: var(--mono); font-size: 9.5px; color: var(--ink3); }
+.pick .pt { font-family: var(--serif); font-size: 19px; font-weight: 600; line-height: 1.4; }
+.pick .pp { font-size: 13px; color: var(--ink2); line-height: 1.7; margin-top: 7px; }
+.pick .pc { margin-top: 11px; }
+.pick .pacts { display: flex; gap: 10px; margin-top: 12px; }
+.pick .pacts .btn { flex: 1; }
+.marks { display: flex; align-items: center; gap: 9px; margin-top: 11px; }
+
+/* 找问题：五组 */
+.glist { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.grow { border-bottom: 1px solid var(--line2); }
+.grow:last-child { border-bottom: none; }
+.ghead { display: flex; align-items: center; gap: 8px; padding: 12px 14px; }
+.gdot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--gray); }
+.gdot.green { background: var(--green); }
+.gdot.amber { background: var(--amber); }
+.gdot.gray { background: var(--gray); }
+.ghead .gname { flex: 1; font-family: var(--serif); font-size: 15px; font-weight: 600; }
+.ghead .gcount { font-family: var(--mono); font-size: 10.5px; color: var(--ink3); }
+.ghead .gcaret { font-family: var(--mono); font-size: 13px; color: var(--ink3); width: 13px; text-align: right; }
+.prow { display: flex; align-items: flex-start; gap: 10px; padding: 9px 14px 9px 29px; border-top: 1px solid var(--line2); }
+.prow .q { flex: 1; font-size: 13px; line-height: 1.65; color: var(--ink2); }
+.prow .go { flex: none; font-family: var(--mono); font-size: 10.5px; color: var(--ink3); padding-top: 3px; }
+
+/* ================= ② 检索 ================= */
+.searchbar {
+  height: 38px; margin-top: 12px; padding: 0 14px; gap: 8px;
+  display: flex; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 19px;
+}
+.searchbar .ic { width: 13px; height: 13px; border: 1.5px solid var(--ink3); border-radius: 50%; position: relative; flex: none; }
+.searchbar .ic::after {
+  content: ""; position: absolute; right: -5px; bottom: -4px;
+  width: 6px; height: 1.5px; background: var(--ink3); transform: rotate(45deg);
+}
+.searchbar .sinput { flex: 1; font-size: 14px; color: var(--ink); }
+.searchbar .go { font-family: var(--mono); font-size: 12px; color: var(--green); }
+.sealed { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.sealed span {
+  font-family: var(--mono); font-size: 11px; color: var(--ink3);
+  border: 1px dashed var(--line); border-radius: 999px; padding: 4px 10px;
+}
+.filterbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; font-family: var(--mono); font-size: 11px; }
+.filterbar .fb-k { color: var(--ink3); }
+.filterbar .fb-v { color: var(--ink2); background: var(--gray-bg); border-radius: 4px; padding: 2px 7px; }
+.filterbar .fb-x { color: var(--green); margin-left: auto; }
+.statusline { display: flex; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--ink2); margin: 14px 0 2px; }
+.statusline .t3 { color: var(--ink3); }
+.hit { padding: 13px 0; border-bottom: 1px solid var(--line2); }
+.hit .hh { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.hit .hsec { font-family: var(--mono); font-size: 10.5px; color: var(--ink3); }
+.hit .ht { font-family: var(--serif); font-size: 16px; font-weight: 600; line-height: 1.45; }
+.hit .hs { font-size: 12px; color: var(--ink2); line-height: 1.65; margin-top: 5px; }
+.hit .hm { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.hl { color: var(--green); background: var(--green-bg); border-radius: 2px; padding: 0 1px; }
+
+/* ================= ③ 清单 ================= */
+.board {
+  display: flex; align-items: center; gap: 14px; margin: 14px 0;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+}
+.board .bd-n { font-family: var(--serif); font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--green); text-align: center; }
+.board .bd-k { font-family: var(--mono); font-size: 9.5px; color: var(--ink3); text-align: center; }
+.board .bd-r { flex: 1; border-left: 1px solid var(--line2); padding-left: 14px; }
+.board .bd-t { font-size: 13px; line-height: 1.55; }
+.board .bd-p { font-size: 11.5px; color: var(--ink3); line-height: 1.55; margin-top: 3px; }
+.crow { display: flex; align-items: center; gap: 8px; padding: 13px 0; border-bottom: 1px solid var(--line2); }
+.crow .cm { flex: 1; min-width: 0; }
+.crow .ch { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+.crow .csec { font-family: var(--mono); font-size: 10.5px; color: var(--ink3); }
+.crow .ctag { font-family: var(--mono); font-size: 9.5px; color: var(--amber); background: var(--amber-bg); border-radius: 3px; padding: 1px 5px; }
+.crow .ct { font-family: var(--serif); font-size: 15px; font-weight: 600; line-height: 1.45; }
+.crow .cp { font-size: 11.5px; color: var(--ink3); line-height: 1.6; margin-top: 3px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.crow .ca { flex: none; font-family: var(--mono); font-size: 14px; color: var(--ink3); padding-left: 3px; }
+.disc { font-size: 11px; color: var(--ink3); line-height: 1.7; padding-top: 12px; border-top: 1px solid var(--line2); margin-top: 18px; }
+
+/* ================= ④ 我的 ================= */
+.kv { background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.kvrow { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line2); font-size: 12px; }
+.kvrow:last-child { border-bottom: none; }
+.kvrow .k { color: var(--ink3); }
+.kvrow .v { font-family: var(--mono); text-align: right; }
+
+/* ---------------- 页脚：token 图例 ---------------- */
+.ft {
+  margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line2);
+  display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.sw { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.sw .s { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10.5px; color: var(--ink2); }
+.sw .d { width: 11px; height: 11px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, .06); }
+.next { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+</style>
+</head>
+<body>
+<div class="artboard">
+
+  <header class="hd">
+    <h1>高性价比人生指南 · 界面原型 v3</h1>
+    <div class="sub">零交互静态稿 · 4 个主 tab + 1 个暗色样本 · 内容取自真实条目（v20261009 · 676 条 / 34 节 / 证据 A439 B182 C55）</div>
+  </header>
+
+  <div class="row">
+
+    <!-- ============ ① 今天 ============ -->
+    <figure class="dev">
+      <div class="frame">
+        <div class="screen">
+          <div class="nav"><span class="nav-t">高性价比人生指南</span>
+            <span class="capsule"><i></i><i></i><i></i><b></b></span>
+          </div>
+          <div class="body">
+
+            <div class="ostrip">
+              <span class="odot"></span>
+              <span class="ot">已存全书 · 676 条 · 18.4 MB · 断网可读</span>
+              <span class="oa">管理 ›</span>
+            </div>
+
+            <div class="masthead">
+              <div class="bk">高性价比人生指南</div>
+              <div class="tag">把「该做的」按值不值得做排好序，告诉你为什么，然后让你做得到。</div>
+              <div class="stats">676 条 · 34 节 · 522 处交叉引用</div>
+            </div>
+
+            <div class="pick">
+              <div class="ph"><span class="pk">今天做一条</span><span class="ps">随机一条 · 性价比极高</span></div>
+              <div class="pt">系安全带，前排后排都系</div>
+              <div class="pp">坐前排系上安全带，出车祸时被撞死的概率大约降一半。坐轻型卡车前排的降六成。</div>
+              <div class="pc">
+                <div class="cost">
+                  <div class="c"><span class="ck">钱</span><span class="cv zero">不花钱</span></div>
+                  <div class="c"><span class="ck">时间</span><span class="cv zero">不占时间</span></div>
+                  <div class="c"><span class="ck">毅力</span><span class="cv zero">不用毅力</span></div>
+                  <div class="c"><span class="ck">收益</span><span class="cv">收益大</span></div>
+                  <div class="c"><span class="ck">换回</span><span class="cv">换寿命</span></div>
+                </div>
+              </div>
+              <div class="marks">
+                <span class="ev">A</span>
+                <span class="tier r3"><i></i><i></i><i></i></span>
+                <span class="rt mono">性价比 极高</span>
+              </div>
+              <div class="pacts">
+                <span class="btn ghost">换一条 ↻</span>
+                <span class="btn pri">加进清单</span>
+              </div>
+            </div>
+
+            <div class="label">找问题 · 按你的处境</div>
+            <div class="glist">
+              <div class="grow">
+                <div class="ghead"><span class="gdot green"></span><span class="gname">身体与健康</span><span class="gcount">7</span><span class="gcaret">−</span></div>
+                <div class="prow"><span class="q">几乎不花钱，就能明显降低早死概率的事有哪些？</span><span class="go">1 节 ›</span></div>
+                <div class="prow"><span class="q">抽烟、喝酒、久坐、熬夜到底折寿多少？</span><span class="go">2 节 ›</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot green"></span><span class="gname">日常习惯</span><span class="gcount">4</span><span class="gcaret">＋</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot amber"></span><span class="gname">钱与工作</span><span class="gcount">7</span><span class="gcaret">＋</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot amber"></span><span class="gname">关系与家庭</span><span class="gcount">10</span><span class="gcaret">＋</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot gray"></span><span class="gname">法律与风险</span><span class="gcount">6</span><span class="gcaret">＋</span></div>
+              </div>
+            </div>
+
+            <div class="label">按节读</div>
+            <div class="rowcard">
+              <div class="rc-l">
+                <div class="rc-h">34 节目录</div>
+                <div class="rc-p">每节按性价比从高到低排，节内相互指路可点</div>
+              </div>
+              <span class="rc-a">676 条 ›</span>
+            </div>
+
+          </div>
+          <div class="tabbar">
+            <span class="tb on"><i class="mk"></i><span class="lb">今天</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">检索</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">清单</span><span class="bdg">2</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">我的</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="cap"><b>① 今天</b><i>行动起点 · 首屏就回答「我今天该做哪一条」</i></figcaption>
+    </figure>
+
+    <!-- ============ ② 检索 ============ -->
+    <figure class="dev">
+      <div class="frame">
+        <div class="screen">
+          <div class="nav"><span class="nav-t">检索</span>
+            <span class="capsule"><i></i><i></i><i></i><b></b></span>
+          </div>
+          <div class="body">
+
+            <div class="searchbar">
+              <span class="ic"></span>
+              <span class="sinput">血压</span>
+              <span class="go">搜</span>
+            </div>
+
+            <div class="sealed">
+              <span>安全带</span><span>低钠盐</span><span>押金</span><span>工伤</span>
+            </div>
+
+            <div class="seg">
+              <span class="s on">全部</span>
+              <span class="s">只看 A 级证据</span>
+              <span class="s">只看极高</span>
+            </div>
+
+            <div class="filterbar">
+              <span class="fb-k">筛选</span>
+              <span class="fb-v">不限</span>
+              <span class="fb-x">展开 ⌄</span>
+            </div>
+
+            <div class="statusline">
+              <span>命中 13 条</span>
+              <span class="t3">· 已显示 3</span>
+            </div>
+
+            <div class="hit">
+              <div class="hh"><span class="hsec">1 节 · 07</span></div>
+              <div class="ht">量<span class="hl">血压</span>，高了就吃药降到达标</div>
+              <div class="hs"><span class="hl">血压</span>每降 10 mmHg，出大的心血管毛病的概率降两成，中风降 27%，心衰降 28%</div>
+              <div class="hm"><span class="ev">A</span><span class="tier r2"><i></i><i></i><i></i></span><span class="rt mono">性价比 高</span></div>
+            </div>
+
+            <div class="hit">
+              <div class="hh"><span class="hsec">1 节 · 28</span></div>
+              <div class="ht">勃起功能出了问题，先去查心血管，别当成单纯的「那方面的事」</div>
+              <div class="hs">先查<span class="hl">血压</span>、血糖、血脂，别自己买药压过去。有这类问题的人，后来得心血管病的多约四成。</div>
+              <div class="hm"><span class="ev">A</span><span class="tier r1"><i></i><i></i><i></i></span><span class="rt mono">性价比 一般</span></div>
+            </div>
+
+            <div class="hit">
+              <div class="hh"><span class="hsec">2 节 · 02</span></div>
+              <div class="ht">别在家里和车里抽烟，也别让客人在家里抽</div>
+              <div class="hs">长期吸二手烟的人，高<span class="hl">血压</span>、心脏病、卒中的风险都高三成上下。在家里吸到的，比在外面吸到的更伤人。</div>
+              <div class="hm"><span class="ev">A</span><span class="tier r2"><i></i><i></i><i></i></span><span class="rt mono">性价比 高</span></div>
+            </div>
+
+            <div class="disc">检索只匹配原文，不改写、不补数字。命中后请以条目详情里的原文为准。</div>
+
+          </div>
+          <div class="tabbar">
+            <span class="tb"><i class="mk"></i><span class="lb">今天</span></span>
+            <span class="tb on"><i class="mk"></i><span class="lb">检索</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">清单</span><span class="bdg">2</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">我的</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="cap"><b>② 检索</b><i>关键词命中 + 三维成本筛选（结果为真实条目）</i></figcaption>
+    </figure>
+
+    <!-- ============ ③ 清单 ============ -->
+    <figure class="dev">
+      <div class="frame">
+        <div class="screen">
+          <div class="nav"><span class="nav-t">清单</span>
+            <span class="capsule"><i></i><i></i><i></i><b></b></span>
+          </div>
+          <div class="body">
+
+            <div class="seg">
+              <span class="s on">今天 <b class="sn">2</b></span>
+              <span class="s">稍后 <b class="sn">3</b></span>
+              <span class="s">已完成 <b class="sn">5</b></span>
+              <span class="s">收藏 <b class="sn">3</b></span>
+            </div>
+
+            <div class="board">
+              <div class="bd-l">
+                <div class="bd-n">3</div>
+                <div class="bd-k">连续天数</div>
+              </div>
+              <div class="bd-r">
+                <div class="bd-t">今天已经做到 1 条</div>
+                <div class="bd-p">明天还想继续？再挑一条放进「今天」</div>
+              </div>
+            </div>
+
+            <div class="crow">
+              <div class="cm">
+                <div class="ch"><span class="csec">1 节 · 01</span></div>
+                <div class="ct">系安全带，前排后排都系</div>
+                <div class="cp">坐前排系上安全带，出车祸时被撞死的概率大约降一半。</div>
+              </div>
+              <span class="ca">○</span><span class="ca">▸</span><span class="ca">✕</span>
+            </div>
+
+            <div class="crow">
+              <div class="cm">
+                <div class="ch"><span class="csec">1 节 · 25</span><span class="ctag">稍后</span></div>
+                <div class="ct">抑郁或有自杀念头时打 12356，家里不囤安眠药和农药</div>
+                <div class="cp">把能要命的东西从手边拿走：管住镇痛药以后，相关自杀降 43%。</div>
+              </div>
+              <span class="ca">○</span><span class="ca">▸</span><span class="ca">✕</span>
+            </div>
+
+            <div style="margin-top:16px">
+              <span class="btn ghost block">再挑一条放进「今天」</span>
+            </div>
+
+            <div class="disc">清单存在你的 openid 下，不需要登录也不采集其他信息。断网时的修改会在联网后自动补传。</div>
+
+          </div>
+          <div class="tabbar">
+            <span class="tb"><i class="mk"></i><span class="lb">今天</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">检索</span></span>
+            <span class="tb on"><i class="mk"></i><span class="lb">清单</span><span class="bdg">2</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">我的</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="cap"><b>③ 清单</b><i>行动看板 · 今天 / 稍后 / 已完成 / 收藏 + 连续天数</i></figcaption>
+    </figure>
+
+    <!-- ============ ④ 我的 ============ -->
+    <figure class="dev">
+      <div class="frame">
+        <div class="screen">
+          <div class="nav"><span class="nav-t">我的</span>
+            <span class="capsule"><i></i><i></i><i></i><b></b></span>
+          </div>
+          <div class="body">
+
+            <div class="masthead">
+              <div class="bk">高性价比人生指南</div>
+              <div class="tag">微信小程序版 · 内容每天从上游仓库自动同步</div>
+            </div>
+
+            <div class="label">内容版本</div>
+            <div class="kv">
+              <div class="kvrow"><span class="k">更新于</span><span class="v">2026 年 10 月 9 日</span></div>
+              <div class="kvrow"><span class="k">内容量</span><span class="v">676 条 · 34 节</span></div>
+              <div class="kvrow"><span class="k">另外</span><span class="v">9 篇长文 · 136 篇核实</span></div>
+              <div class="kvrow"><span class="k">本机上次同步</span><span class="v">10-10 23:43</span></div>
+              <div class="kvrow"><span class="k">离线已存</span><span class="v">18.4 MB · 全书</span></div>
+            </div>
+
+            <span class="btn block">立即检查内容更新</span>
+
+            <div class="label">读这本书前先知道</div>
+            <div class="rowcard">
+              <div class="rc-l">
+                <div class="rc-h">证据等级和性价比档怎么读</div>
+                <div class="rc-p">A/B/C 说的是数字可不可信；性价比说的是值不值得做</div>
+              </div>
+              <span class="rc-a">›</span>
+            </div>
+            <div class="rowcard">
+              <div class="rc-l"><div class="rc-h">术语表</div></div>
+              <span class="rc-a">41 条 ›</span>
+            </div>
+            <div class="rowcard">
+              <div class="rc-l"><div class="rc-h">来源核实记录</div></div>
+              <span class="rc-a">136 篇 ›</span>
+            </div>
+
+            <div class="label">设置</div>
+            <div class="rowcard">
+              <div class="rc-l"><div class="rc-h">阅读设置</div><div class="rc-p">字号 / 浅色与暗色</div></div>
+              <span class="rc-a">›</span>
+            </div>
+            <div class="rowcard">
+              <div class="rc-l"><div class="rc-h">离线管理</div><div class="rc-p">已存全书 · 18.4 MB · 断网可读</div></div>
+              <span class="rc-a">›</span>
+            </div>
+
+            <div class="label">版权与许可</div>
+            <div class="rowcard">
+              <div class="rc-l"><div class="rc-h">关于与许可</div><div class="rc-p">CC BY 4.0 · 上游仓库 · 改动说明</div></div>
+              <span class="rc-a">›</span>
+            </div>
+
+            <div class="disc">文字内容的著作权归原作者所有，本程序不是原始发布方。书中数字是研究结论，不是对个人的承诺。</div>
+
+          </div>
+          <div class="tabbar">
+            <span class="tb"><i class="mk"></i><span class="lb">今天</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">检索</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">清单</span><span class="bdg">2</span></span>
+            <span class="tb on"><i class="mk"></i><span class="lb">我的</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="cap"><b>④ 我的</b><i>用「更新于 X 月 X 日」代替 commit 号</i></figcaption>
+    </figure>
+
+    <!-- ============ ⑤ 今天 · 暗色 ============ -->
+    <figure class="dev dev--dark">
+      <div class="frame">
+        <div class="screen dark">
+          <div class="nav"><span class="nav-t">高性价比人生指南</span>
+            <span class="capsule"><i></i><i></i><i></i><b></b></span>
+          </div>
+          <div class="body">
+
+            <div class="ostrip">
+              <span class="odot"></span>
+              <span class="ot">已存全书 · 676 条 · 18.4 MB · 断网可读</span>
+              <span class="oa">管理 ›</span>
+            </div>
+
+            <div class="masthead">
+              <div class="bk">高性价比人生指南</div>
+              <div class="tag">把「该做的」按值不值得做排好序，告诉你为什么，然后让你做得到。</div>
+              <div class="stats">676 条 · 34 节 · 522 处交叉引用</div>
+            </div>
+
+            <div class="pick">
+              <div class="ph"><span class="pk">今天做一条</span><span class="ps">随机一条 · 性价比极高</span></div>
+              <div class="pt">系安全带，前排后排都系</div>
+              <div class="pp">坐前排系上安全带，出车祸时被撞死的概率大约降一半。坐轻型卡车前排的降六成。</div>
+              <div class="pc">
+                <div class="cost">
+                  <div class="c"><span class="ck">钱</span><span class="cv zero">不花钱</span></div>
+                  <div class="c"><span class="ck">时间</span><span class="cv zero">不占时间</span></div>
+                  <div class="c"><span class="ck">毅力</span><span class="cv zero">不用毅力</span></div>
+                  <div class="c"><span class="ck">收益</span><span class="cv">收益大</span></div>
+                  <div class="c"><span class="ck">换回</span><span class="cv">换寿命</span></div>
+                </div>
+              </div>
+              <div class="marks">
+                <span class="ev">A</span>
+                <span class="tier r3"><i></i><i></i><i></i></span>
+                <span class="rt mono">性价比 极高</span>
+              </div>
+              <div class="pacts">
+                <span class="btn ghost">换一条 ↻</span>
+                <span class="btn pri">加进清单</span>
+              </div>
+            </div>
+
+            <div class="label">找问题 · 按你的处境</div>
+            <div class="glist">
+              <div class="grow">
+                <div class="ghead"><span class="gdot green"></span><span class="gname">身体与健康</span><span class="gcount">7</span><span class="gcaret">−</span></div>
+                <div class="prow"><span class="q">几乎不花钱，就能明显降低早死概率的事有哪些？</span><span class="go">1 节 ›</span></div>
+                <div class="prow"><span class="q">抽烟、喝酒、久坐、熬夜到底折寿多少？</span><span class="go">2 节 ›</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot green"></span><span class="gname">日常习惯</span><span class="gcount">4</span><span class="gcaret">＋</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot amber"></span><span class="gname">钱与工作</span><span class="gcount">7</span><span class="gcaret">＋</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot amber"></span><span class="gname">关系与家庭</span><span class="gcount">10</span><span class="gcaret">＋</span></div>
+              </div>
+              <div class="grow">
+                <div class="ghead"><span class="gdot gray"></span><span class="gname">法律与风险</span><span class="gcount">6</span><span class="gcaret">＋</span></div>
+              </div>
+            </div>
+
+            <div class="label">按节读</div>
+            <div class="rowcard">
+              <div class="rc-l">
+                <div class="rc-h">34 节目录</div>
+                <div class="rc-p">每节按性价比从高到低排，节内相互指路可点</div>
+              </div>
+              <span class="rc-a">676 条 ›</span>
+            </div>
+
+          </div>
+          <div class="tabbar">
+            <span class="tb on"><i class="mk"></i><span class="lb">今天</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">检索</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">清单</span><span class="bdg">2</span></span>
+            <span class="tb"><i class="mk"></i><span class="lb">我的</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption class="cap"><b>⑤ 今天 · 暗色</b><i>同一套 token 走 prefers-color-scheme</i></figcaption>
+    </figure>
+
+  </div>
+
+  <footer class="ft">
+    <div class="sw">
+      <span class="s"><i class="d" style="background:#2F5D50"></i>--green 证据A/主色</span>
+      <span class="s"><i class="d" style="background:#A9761B"></i>--amber 证据B</span>
+      <span class="s"><i class="d" style="background:#8C918D"></i>--gray 证据C</span>
+      <span class="s"><i class="d" style="background:#F4F5F2"></i>--paper</span>
+      <span class="s"><i class="d" style="background:#191D1C"></i>--ink</span>
+      <span class="s"><i class="d" style="background:#15181A"></i>--paper 暗色</span>
+      <span class="s">字阶 44 / 36 / 30 / 26 / 22　宋体内容 · 等宽数据</span>
+      <span class="s">每屏只允许一个主按钮</span>
+    </div>
+    <div class="next">下一批候选：离线全屏流程 · 检索结果分层 · 我的页重排 · 埋点 · 字号阶梯 ｜ 本稿零 JS、零外链，双击即可查看</div>
+  </footer>
+
+</div>
+</body>
+</html>
