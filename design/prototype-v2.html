@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>高性价比人生指南 · 小程序重设计原型 v2</title>
+<style>
+/* ============================================================
+   设计系统令牌
+   原则：颜色只承载语义；结构用细线与留白，不用阴影与圆角堆叠。
+   ============================================================ */
+:root {
+  --paper:#F4F5F2; --card:#FFFFFF; --card2:#FAFAF8;
+  --line:#E3E4DF; --line2:#EDEEE9;
+  --ink:#191D1C; --ink2:#5C635F; --ink3:#8C918D;
+  --green:#2F5D50; --green-bg:#EAF0EC;
+  --amber:#A9761B; --amber-bg:#F7F0E2;
+  --gray:#8C918D;  --gray-bg:#EDEEEA;
+  --red:#9C3B2E;   --red-bg:#F6EAE7;
+
+  --serif:"Songti SC","STSong","Source Han Serif SC","Noto Serif CJK SC",Georgia,serif;
+  --mono:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+
+  --shell:#1B1F1E; --shell-ink:#E6E9E7; --shell-ink2:#98A09B; --shell-line:#2E3533;
+}
+body.dark {
+  --paper:#15181A; --card:#1D2124; --card2:#1A1E20;
+  --line:#2C3135; --line2:#23282B;
+  --ink:#E9EBE9; --ink2:#A9B0AB; --ink3:#8F9791;
+  --green:#7FBFA6; --green-bg:#1E2B27;
+  --amber:#D6A855; --amber-bg:#2C2517;
+  --gray:#8C918D;  --gray-bg:#262A29;
+  --red:#D4796A;   --red-bg:#2E211E;
+  --shell:#0F1213; --shell-line:#242A29;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--sans); background:var(--shell); color:var(--shell-ink);
+  -webkit-font-smoothing:antialiased; line-height:1.6;
+  transition:background .25s ease;
+}
+
+/* ---------------- 交付页骨架 ---------------- */
+.wrap{max-width:1280px;margin:0 auto;padding:56px 40px 96px}
+.masthead{border-bottom:1px solid var(--shell-line);padding-bottom:34px}
+.masthead .kick{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--shell-ink2)}
+.masthead h1{font-family:var(--serif);font-size:40px;font-weight:600;letter-spacing:.01em;margin:14px 0 12px;line-height:1.3}
+.masthead .sub{color:var(--shell-ink2);font-size:14px;max-width:66ch;line-height:1.8}
+.masthead .sub b{color:var(--shell-ink);font-weight:600}
+
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:20px 0 32px}
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--shell-ink);
+  background:transparent;border:1px solid var(--shell-line);border-radius:2px;
+  padding:8px 14px;cursor:pointer;transition:border-color .15s,color .15s,background .15s;
+}
+.btn:hover{border-color:var(--shell-ink2)}
+.btn.on{background:var(--shell-ink);color:var(--shell);border-color:var(--shell-ink)}
+.toolbar .hint{font-family:var(--mono);font-size:11px;color:var(--shell-ink2);margin-left:auto}
+
+.stage{display:grid;grid-template-columns:392px 1fr;gap:56px;align-items:start}
+@media (max-width:1080px){.stage{grid-template-columns:1fr}}
+
+/* ---------------- 手机 ---------------- */
+.device{
+  width:392px;height:812px;background:var(--paper);border-radius:36px;
+  border:1px solid var(--shell-line);overflow:hidden;position:relative;
+  display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.34);
+}
+.statusbar{
+  height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--paper);
+}
+.statusbar .right{display:flex;gap:5px;align-items:center}
+.statusbar .bat{width:20px;height:10px;border:1px solid var(--ink3);border-radius:2px;position:relative}
+.statusbar .bat::after{content:"";position:absolute;inset:1.5px;right:5px;background:var(--ink)}
+
+.viewport{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--paper)}
+.viewport::-webkit-scrollbar{width:0}
+.screen{display:none;padding:0 20px 30px}
+.screen.on{display:block}
+.screen.flat{padding-bottom:18px}
+
+.navbar{
+  display:flex;align-items:center;gap:12px;height:48px;margin:0 -20px 8px;padding:0 20px;
+  border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--paper);z-index:20;
+}
+.navbar .back{font-family:var(--mono);font-size:17px;color:var(--ink2);cursor:pointer;padding:2px 8px 2px 0}
+.navbar .crumb{font-family:var(--mono);font-size:13px;color:var(--ink3)}
+
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.serif{font-family:var(--serif)}
+.t3{color:var(--ink3)} .t2{color:var(--ink2)}
+.label{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink3);
+  margin:26px 0 12px;display:flex;align-items:baseline;gap:8px;
+}
+.label .cnt{color:var(--ink2)}
+.label .more{margin-left:auto;color:var(--ink3);cursor:pointer}
+
+/* 首屏头部 */
+.brand{padding:6px 0 4px}
+.brand .bk{font-family:var(--serif);font-size:27px;font-weight:600;line-height:1.3;color:var(--ink)}
+.brand .meta{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-top:7px;display:flex;gap:10px;flex-wrap:wrap}
+
+/* 离线状态条（新增：常驻） */
+.offbar{
+  display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 14px;
+  border:1px solid var(--line);border-radius:3px;background:var(--card);cursor:pointer;
+}
+.offbar .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+.offbar .ot{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.offbar .ot b{color:var(--green);font-weight:500}
+.offbar .go{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3)}
+
+/* 今天做一条 */
+.today{
+  margin-top:18px;border:1px solid var(--line);border-left:4px solid var(--green);
+  border-radius:3px;background:var(--card);padding:22px 22px 18px;
+}
+.today .tk{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--green);display:flex;gap:8px}
+.today .tk .sw{margin-left:auto;color:var(--ink3);cursor:pointer}
+.today .tt{font-family:var(--serif);font-size:25px;font-weight:600;line-height:1.4;margin:12px 0 10px;color:var(--ink)}
+.today .tp{font-family:var(--serif);font-size:16px;line-height:1.8;color:var(--ink2)}
+.today .tfoot{display:flex;align-items:center;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line2)}
+
+/* 成本签 */
+.cost{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);margin-top:16px}
+.cost .c{padding:8px 2px;border-right:1px solid var(--line2)}
+.cost .c:last-child{border-right:0}
+.cost .k{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink3)}
+.cost .v{display:block;font-size:12px;color:var(--ink2);margin-top:3px}
+.cost .v.zero{color:var(--green)}
+.cost.sm .c{padding:6px 2px}
+.cost.sm .k{font-size:9px}
+.cost.sm .v{font-size:11.5px}
+
+/* 标注 */
+.marks{display:flex;align-items:center;gap:12px;margin-top:10px}
+.eb{width:22px;height:22px;border-radius:2px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:12px;font-weight:500;flex:none}
+.eb.A{background:var(--green);color:#fff}
+.eb.B{background:var(--amber);color:#fff}
+.eb.C{background:var(--gray-bg);color:var(--ink2);border:1px solid var(--gray)}
+.eb.sm{width:18px;height:18px;font-size:10.5px}
+.tier{display:flex;gap:2px}
+.tier i{width:9px;height:5px;border-radius:1px;background:var(--line);display:block}
+.tier.r1 i:nth-child(1){background:var(--gray)}
+.tier.r2 i:nth-child(-n+2){background:var(--amber)}
+.tier.r3 i{background:var(--green)}
+.mt{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+
+.flag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:2px}
+.flag.r{background:var(--red-bg);color:var(--red)}
+.flag.a{background:var(--amber-bg);color:var(--amber)}
+
+/* 问题分组 */
+.qgroup{margin-bottom:16px}
+.qgroup .gk{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:6px}
+.qgroup .gk .d{width:6px;height:6px;border-radius:50%}
+.qrow{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line2);cursor:pointer}
+.qrow:last-child{border-bottom:0}
+.qrow .q{font-size:14.5px;line-height:1.6;color:var(--ink)}
+.qrow .go{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3);flex:none;padding-top:2px}
+
+.row{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line2);cursor:pointer}
+.row:last-child{border-bottom:0}
+.row .rl{flex:1;min-width:0}
+.row .rh{font-family:var(--serif);font-size:16px;color:var(--ink)}
+.row .rp{font-size:12.5px;color:var(--ink3);margin-top:3px}
+.row .rv{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+
+.bt{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:42px;padding:0 20px;border-radius:3px;border:1px solid var(--line);
+  background:var(--card);font-family:var(--mono);font-size:13px;color:var(--ink2);cursor:pointer;
+  transition:background .18s,border-color .18s,color .18s;
+}
+.bt.pri{background:var(--green);border-color:var(--green);color:#fff}
+.bt.block{display:flex;width:100%}
+.bt.done{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.bt.sm{height:34px;padding:0 14px;font-size:11.5px}
+
+/* 检索 */
+.searchbar{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;margin-top:10px;
+  border:1px solid var(--line);border-radius:22px;background:var(--card)}
+.searchbar .ic{width:12px;height:12px;border:2px solid var(--ink3);border-radius:50%;position:relative;flex:none}
+.searchbar .ic::after{content:"";position:absolute;right:-5px;bottom:-3px;width:6px;height:2px;background:var(--ink3);transform:rotate(45deg)}
+.searchbar .q{flex:1;font-size:14.5px;color:var(--ink)}
+.searchbar .clr{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{font-family:var(--mono);font-size:11.5px;color:var(--ink2);background:var(--card);
+  border:1px solid var(--line);border-radius:99px;padding:5px 13px;cursor:pointer}
+.chip.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.statusline{display:flex;align-items:baseline;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin:18px 0 4px}
+
+.hit{padding:16px 0;border-bottom:1px solid var(--line2);cursor:pointer}
+.hit .hh{display:flex;align-items:center;gap:8px}
+.hit .hs{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.hit .ht{font-family:var(--serif);font-size:17px;font-weight:600;line-height:1.5;color:var(--ink);margin:7px 0 6px}
+.hit .hp{font-size:13px;line-height:1.65;color:var(--ink3)}
+.hit .hl{background:var(--amber-bg);border-radius:2px;padding:0 1px}
+.hit .hm{display:flex;align-items:center;gap:10px;margin-top:10px}
+.tierhead{display:flex;align-items:center;gap:8px;margin:20px 0 2px}
+.tierhead .th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink2)}
+.tierhead .tn{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.tierhead .tl{flex:1;height:1px;background:var(--line)}
+
+/* 条目详情 */
+.dtitle{font-family:var(--serif);font-size:25px;font-weight:600;line-height:1.42;color:var(--ink);margin:8px 0 14px}
+.plain{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:3px;
+  background:var(--card);padding:20px 20px 18px;margin-bottom:18px}
+.plain .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--green);display:block;margin-bottom:12px}
+.plain .v{font-family:var(--serif);font-size:16.5px;line-height:1.9;color:var(--ink)}
+.plain .v b{font-weight:600;border-bottom:1px solid var(--green)}
+.field{margin:20px 0}
+.field .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink3);display:block;margin-bottom:9px}
+.field .v{font-size:14.5px;line-height:1.8;color:var(--ink2)}
+.field .v .rich{color:var(--ink)}
+.mkpair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:22px 0;padding:16px 0;
+  border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)}
+.mkp{display:flex;gap:10px;align-items:flex-start}
+.mkp .kb{display:flex;flex-direction:column;gap:3px}
+.mkp .kk{font-family:var(--mono);font-size:9.5px;color:var(--ink3)}
+.mkp .kv{font-size:12.5px;color:var(--ink2)}
+.reflist .rr{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px dashed var(--line)}
+.reflist .rr:last-child{border-bottom:0}
+.reflist .rn{font-family:var(--mono);font-size:11px;color:var(--ink3);flex:none;padding-top:2px}
+.reflist .rt{font-family:var(--serif);font-size:14px;color:var(--green);border-bottom:1px dashed var(--green);padding-bottom:1px}
+
+.actbar{flex:none;display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--line);background:var(--paper)}
+
+/* tabBar：变量在组件内定义（tabBar 节点不在 page 下，继承不到 page 变量） */
+.tabbar{
+  --line:#E3E4DF; --ink3:#8C918D; --green:#2F5D50;
+  flex:none;display:flex;height:62px;border-top:1px solid var(--line);background:var(--card);position:relative;z-index:30;
+}
+body.dark .tabbar{--line:#2C3135;--ink3:#8F9791;--green:#7FBFA6}
+.tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;position:relative}
+.tabbar .mk{width:26px;height:3px;border-radius:2px;background:transparent}
+.tabbar .tb.on .mk{background:var(--green)}
+.tabbar .lb{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink3)}
+.tabbar .tb.on .lb{color:var(--green)}
+.tabbar .bdg{position:absolute;top:9px;margin-left:26px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;
+  background:var(--green);color:#fff;font-family:var(--mono);font-size:10px;line-height:15px;text-align:center}
+
+/* 清单 */
+.streak{display:flex;align-items:baseline;gap:10px;margin-top:14px}
+.streak .n{font-family:var(--serif);font-size:31px;font-weight:600;color:var(--ink)}
+.streak .u{font-size:13px;color:var(--ink2)}
+.streak .note{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-left:auto;text-align:right}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--card);margin-top:16px}
+.seg .s{flex:1;text-align:center;padding:11px 0;font-family:var(--mono);font-size:12px;color:var(--ink3);cursor:pointer}
+.seg .s.on{background:var(--green-bg);color:var(--green)}
+.crow{display:flex;gap:12px;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--line2)}
+.crow .box{width:21px;height:21px;border:1.5px solid var(--line);border-radius:3px;flex:none;margin-top:2px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent;cursor:pointer;
+  transition:background .18s,border-color .18s,color .18s}
+.crow .box.chk{background:var(--green);border-color:var(--green);color:#fff}
+.crow .cm{flex:1;min-width:0}
+.crow .cs{font-family:var(--mono);font-size:10.5px;color:var(--ink3)}
+.crow .ct{font-family:var(--serif);font-size:16px;line-height:1.45;color:var(--ink);margin-top:3px}
+.crow.done .ct{color:var(--ink3);text-decoration:line-through;text-decoration-color:var(--line)}
+.crow .cp{font-size:12.5px;color:var(--ink3);margin-top:4px}
+
+/* 我的 */
+.bignum{margin-top:16px;padding:20px;border:1px solid var(--line);border-radius:3px;background:var(--card)}
+.bignum .d{font-family:var(--serif);font-size:33px;font-weight:600;color:var(--ink);line-height:1.2}
+.bignum .s{font-family:var(--mono);font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.7}
+.setrow{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line2)}
+.setrow .sl{flex:1}
+.setrow .sh{font-size:14.5px;color:var(--ink)}
+.setrow .sp{font-size:12px;color:var(--ink3);margin-top:3px}
+.setrow .sv{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.swatches{display:flex;gap:6px}
+.swatches .sw2{width:30px;height:26px;border-radius:2px;border:1px solid var(--line);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--ink3);background:var(--card)}
+.swatches .sw2.on{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+
+/* 离线 */
+.offwrap{padding:26px 4px}
+.offwrap .oh{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink)}
+.offwrap .od{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-top:10px}
+.bar{height:6px;background:var(--line2);border-radius:3px;overflow:hidden;margin:22px 0 12px}
+.bar .fill{height:100%;background:var(--green);width:0;transition:width .35s ease}
+.offlist{margin-top:22px}
+.offitem{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line2);font-size:13.5px;color:var(--ink2)}
+.offitem .st{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--green)}
+.offitem.wait .st{color:var(--ink3)}
+.badge{margin-top:24px;padding:18px;border:1px solid var(--green);border-radius:3px;background:var(--green-bg);
+  display:flex;gap:12px;align-items:center}
+.badge .bi{font-size:19px;color:var(--green)}
+.badge .bt2{font-family:var(--serif);font-size:15px;color:var(--green)}
+.badge .bs{font-family:var(--mono);font-size:11px;color:var(--green);opacity:.85;margin-top:2px}
+
+/* ---------------- 右侧规范区 ---------------- */
+.specs{display:flex;flex-direction:column;gap:36px}
+.spec{border-top:1px solid var(--shell-line);padding-top:18px}
+.spec h2{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--shell-ink2);font-weight:400;margin-bottom:16px}
+.spec .lede{font-size:14px;color:var(--shell-ink2);line-height:1.85;margin-bottom:18px;max-width:64ch}
+.spec .lede b{color:var(--shell-ink);font-weight:600}
+.obs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ob{border:1px solid var(--shell-line);border-radius:3px;padding:14px 16px}
+.ob .obk{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--shell-ink2);margin-bottom:7px}
+.ob .obt{font-size:13.5px;color:var(--shell-ink);line-height:1.7}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.col{border:1px solid var(--shell-line);border-radius:3px;overflow:hidden}
+.col .chipc{height:44px}
+.col .cl{padding:8px 10px}
+.col .cn{font-family:var(--mono);font-size:10.5px;color:var(--shell-ink)}
+.col .cd{font-family:var(--mono);font-size:9.5px;color:var(--shell-ink2);margin-top:3px;line-height:1.5}
+table.tb{width:100%;border-collapse:collapse;font-size:13px}
+table.tb th,table.tb td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--shell-line);vertical-align:top}
+table.tb th{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--shell-ink2);font-weight:400}
+table.tb td{color:var(--shell-ink2)}
+table.tb td.k{color:var(--shell-ink);white-space:nowrap}
+.tagline{font-family:var(--mono);font-size:11px;color:var(--shell-ink2);margin-top:10px}
+.footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--shell-line);font-family:var(--mono);font-size:11px;color:var(--shell-ink2)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="kick">PRODUCT REDESIGN · V2 · 2026-10-10</div>
+    <h1>《高性价比人生指南》小程序<br>重设计原型与 UI 规范</h1>
+    <p class="sub">
+      内容资产已足够好，缺的是<b>把知识变成行动的闭环</b>。本次重设计做四件事：
+      首屏给出<b>今天该做哪一条</b>、找问题改成<b>按处境分组</b>、条目详情<b>结论上移</b>、
+      清单从收藏夹改成<b>行动看板</b>；离线从「设置项」提升为常驻状态。
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn on" id="btnLight">浅色</button>
+    <button class="btn" id="btnDark">暗色</button>
+    <button class="btn" id="btnReset">回到首屏</button>
+    <span class="hint">可点：底部 tab · 今天做一条 · 加进清单 · 打勾 · 离线状态条</span>
+  </div>
+
+  <div class="stage">
+    <div class="device">
+      <div class="statusbar">
+        <span class="mono">20:41</span>
+        <span class="right"><span class="mono" style="font-size:11px">5G</span><span class="bat"></span></span>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <!-- 1 今天 -->
+        <section class="screen on" id="sc-today">
+          <div class="brand">
+            <div class="bk">高性价比人生指南</div>
+            <div class="meta"><span>更新于 10 月 9 日</span><span>676 条 · 34 节</span><span>证据 A 级 439</span></div>
+          </div>
+
+          <div class="offbar" onclick="go('offline')">
+            <span class="dot"></span>
+            <span class="ot">已完整存到本机 · <b>断网可读</b></span>
+            <span class="go">管理 ›</span>
+          </div>
+
+          <div class="today">
+            <div class="tk"><span>今天做一条</span><span class="sw" onclick="shuffle()">换一条 ↻</span></div>
+            <div class="tt" id="todayTitle"></div>
+            <div class="tp" id="todayPlain"></div>
+            <div class="cost sm" id="todayCost"></div>
+            <div class="marks">
+              <span class="eb A sm" id="todayEv">A</span>
+              <span class="tier r3" id="todayTier"><i></i><i></i><i></i></span>
+              <span class="mt" id="todayRatio"></span>
+            </div>
+            <div class="tfoot">
+              <button class="bt sm" onclick="go('detail')">读这一条</button>
+              <button class="bt pri sm" id="todayAdd" onclick="addItem(this)">加进清单</button>
+            </div>
+          </div>
+
+          <div class="label"><span>找问题</span><span class="cnt">34 个</span><span class="more" onclick="go('search')">去检索 ›</span></div>
+
+          <div class="qgroup">
+            <div class="gk"><span class="d" style="background:var(--green)"></span>身体与安全</div>
+            <div class="qrow" onclick="go('detail')"><span class="q">几乎不花钱，就能明显降低早死概率的事有哪些？</span><span class="go">1 节 ›</span></div>
+            <div class="qrow" onclick="go('detail')"><span class="q">抽烟、喝酒、久坐、熬夜到底折寿多少，具体怎么戒？</span><span class="go">2 节 ›</span></div>
+          </div>
+          <div class="qgroup">
+            <div class="gk"><span class="d" style="background:var(--amber)"></span>钱与工作</div>
+            <div class="qrow" onclick="go('detail')"><span class="q">换工作、换城市之前要算哪几本账？</span><span class="go">9 节 ›</span></div>
+          </div>
+          <div class="qgroup">
+            <div class="gk"><span class="d" style="background:var(--gray)"></span>时间与精力</div>
+            <div class="qrow" onclick="go('detail')"><span class="q">每天精力不够用、总被打断，怎么改？</span><span class="go">3 节 ›</span></div>
+          </div>
+          <button class="bt block" style="margin-top:14px" onclick="go('search')">看全部 34 个问题</button>
+
+          <div class="label">按节读</div>
+          <div class="row" onclick="go('detail')">
+            <div class="rl"><div class="rh">34 节目录</div><div class="rp">每节按性价比从高到低排</div></div>
+            <div class="rv">676 条 ›</div>
+          </div>
+          <div class="row">
+            <div class="rl"><div class="rh">书以外的材料</div><div class="rp">9 篇长文 · 136 篇核实记录 · 术语表</div></div>
+            <div class="rv">›</div>
+          </div>
+        </section>
+
+        <!-- 2 检索 -->
+        <section class="screen flat" id="sc-search">
+          <div class="searchbar"><span class="ic"></span><span class="q">低钠盐</span><span class="clr">清除</span></div>
+          <div class="chips">
+            <span class="chip">换寿命</span><span class="chip">换钱</span>
+            <span class="chip on">证据 A</span><span class="chip on">性价比 极高/高</span><span class="chip">零成本</span>
+          </div>
+          <div class="statusline"><span>命中 4 条</span><span class="t3">· 按值得做的程度排</span></div>
+
+          <div class="tierhead"><span class="th">极高</span><span class="tn">2 条</span><span class="tl"></span></div>
+          <div class="hit" onclick="go('detail')">
+            <div class="hh"><span class="hs">2 节 · 4</span></div>
+            <div class="ht">把盐换成<span class="hl">低钠盐</span>，血压高的人收益最明显</div>
+            <div class="hp">收缩压平均降 5 mmHg…</div>
+            <div class="hm">
+              <span class="eb A sm">A</span><span class="tier r3"><i></i><i></i><i></i></span><span class="mt">性价比 极高</span>
+              <button class="bt pri sm" style="margin-left:auto" onclick="event.stopPropagation();addItem(this)">加清单</button>
+            </div>
+          </div>
+
+          <div class="tierhead"><span class="th">一般</span><span class="tn">2 条</span><span class="tl"></span></div>
+          <div class="hit" onclick="go('detail')">
+            <div class="hh"><span class="hs">2 节 · 9</span><span class="flag r">争议</span></div>
+            <div class="ht">把家里的食盐换成<span class="hl">低钠盐</span>（钾盐）</div>
+            <div class="hp">肾功能不全、服用保钾利尿剂的人要先问医生…</div>
+            <div class="hm">
+              <span class="eb A sm">A</span><span class="tier r1"><i></i><i></i><i></i></span><span class="mt">性价比 一般</span>
+              <button class="bt sm" style="margin-left:auto" onclick="event.stopPropagation();addItem(this)">加清单</button>
+            </div>
+          </div>
+          <div class="hit">
+            <div class="hh"><span class="hs">长文</span></div>
+            <div class="ht">厨房的油和盐：怎么选怎么用</div>
+            <div class="hp">…</div>
+          </div>
+        </section>
+
+        <!-- 3 条目详情 -->
+        <section class="screen" id="sc-detail">
+          <div class="navbar">
+            <span class="back" onclick="back()">‹</span>
+            <span class="crumb">2 节 · 不要慢慢死</span>
+          </div>
+          <div class="dtitle">把家里的食盐换成低钠盐（钾盐）</div>
+
+          <div class="plain">
+            <span class="k">说人话</span>
+            <div class="v">把普通食盐换成低钠盐，<b>血压会降一点</b>。代价是味道略不同、贵一点。<br>但肾功能不好、或在吃保钾利尿剂的人，<b>换之前先问医生</b>。</div>
+          </div>
+
+          <div class="mkpair">
+            <div class="mkp">
+              <span class="eb A">A</span>
+              <div class="kb"><span class="kk">证据等级</span><span class="kv">A · 随机分组试验，数字最可信</span></div>
+            </div>
+            <div class="mkp">
+              <span class="tier r1" style="padding-top:7px"><i></i><i></i><i></i></span>
+              <div class="kb"><span class="kk">性价比</span><span class="kv">一般 · 作者判断，非证据</span></div>
+            </div>
+          </div>
+
+          <div class="cost">
+            <div class="c"><span class="k">钱</span><span class="v zero">花一点</span></div>
+            <div class="c"><span class="k">时间</span><span class="v zero">不占时间</span></div>
+            <div class="c"><span class="k">毅力</span><span class="v zero">不用毅力</span></div>
+            <div class="c"><span class="k">收益</span><span class="v">收益中</span></div>
+            <div class="c"><span class="k">口径</span><span class="v">换寿命</span></div>
+          </div>
+
+          <div class="field"><span class="k">收益</span>
+            <div class="v"><span class="rich">收缩压平均降 5 mmHg</span>，中风风险相应下降；对血压已经偏高的人效果更明显。</div>
+          </div>
+          <div class="field"><span class="k">成本</span>
+            <div class="v">一袋盐贵几块钱；口味略有差别，有人需要一两周适应。肾功能不全者需先咨询医生。</div>
+          </div>
+          <div class="field"><span class="k">来源</span>
+            <div class="v mono" style="font-size:12.5px;word-break:break-all">NEJM 2021 · SSaSS 研究 · 21,000 人 · 随访 4.7 年</div>
+          </div>
+
+          <div class="label">这条还提到</div>
+          <div class="reflist">
+            <div class="rr"><span class="rn">2 节 · 第 12 条</span><span class="rt">高血压先改生活习惯，再谈吃药</span></div>
+            <div class="rr"><span class="rn">2 节 · 第 18 条</span><span class="rt">肾功能不好的人，钾要算着吃</span></div>
+          </div>
+          <div class="label">有 3 条建议指向这里</div>
+          <div class="reflist">
+            <div class="rr"><span class="rn">1 节 · 第 7 条</span><span class="rt">体检发现血压高，先做这四件事</span></div>
+          </div>
+        </section>
+
+        <!-- 4 清单 -->
+        <section class="screen" id="sc-list">
+          <div class="streak">
+            <span class="n">3</span><span class="u">天连续做到</span>
+            <span class="note">用法是挑一两条先做，<br>不是把 676 条做完</span>
+          </div>
+          <div class="seg"><span class="s on">今天</span><span class="s">稍后</span><span class="s">已完成</span><span class="s">收藏</span></div>
+
+          <div class="label"><span>今天</span><span class="cnt" id="todayCount">2 条</span></div>
+          <div class="crow done">
+            <span class="box chk" onclick="toggleRow(this)">✓</span>
+            <div class="cm">
+              <div class="cs">1 节 · 1</div>
+              <div class="ct">系安全带，前排后排都系</div>
+              <div class="cp">零成本、收益大。今天上下车各做一次就算做到。</div>
+            </div>
+          </div>
+          <div class="crow">
+            <span class="box" onclick="toggleRow(this)">✓</span>
+            <div class="cm">
+              <div class="cs">2 节 · 9</div>
+              <div class="ct">把家里的食盐换成低钠盐（钾盐）</div>
+              <div class="cp">肾功能不好的人先问医生。</div>
+            </div>
+          </div>
+
+          <div class="label"><span>稍后</span><span class="cnt">3 条</span></div>
+          <div class="crow">
+            <span class="box"></span>
+            <div class="cm">
+              <div class="cs">2 节 · 21</div>
+              <div class="ct">戒烟：先约戒烟门诊，再定戒烟日</div>
+              <div class="cp">很吃毅力，所以先约门诊，别自己硬扛。</div>
+            </div>
+          </div>
+          <div class="crow">
+            <span class="box"></span>
+            <div class="cm">
+              <div class="cs">9 节 · 3</div>
+              <div class="ct">换城市前先算三本账</div>
+              <div class="cp">多花一个周末算一次，值。</div>
+            </div>
+          </div>
+
+          <button class="bt block" style="margin-top:18px" onclick="go('today')">再挑一条</button>
+        </section>
+
+        <!-- 5 我的 -->
+        <section class="screen" id="sc-mine">
+          <div class="label" style="margin-top:8px">内容版本</div>
+          <div class="bignum">
+            <div class="d">2026 年 10 月 9 日</div>
+            <div class="s">上游更新日 · 676 条 · 34 节 · 证据 A 级 439 条 · 当前已是最新</div>
+          </div>
+          <div class="row">
+            <div class="rl"><div class="rh">版本与更新</div><div class="rp">每天 05:17 自动同步，看这一版改了什么</div></div>
+            <div class="rv">›</div>
+          </div>
+
+          <div class="label">阅读设置</div>
+          <div class="setrow">
+            <div class="sl"><div class="sh">正文字号</div><div class="sp">影响条目详情与长文</div></div>
+            <div class="swatches"><span class="sw2">小</span><span class="sw2 on">标准</span><span class="sw2">大</span></div>
+          </div>
+          <div class="setrow">
+            <div class="sl"><div class="sh">主题</div><div class="sp">跟随系统 / 固定浅色 / 固定暗色</div></div>
+            <div class="swatches"><span class="sw2 on">自动</span><span class="sw2">浅</span><span class="sw2">暗</span></div>
+          </div>
+
+          <div class="label">离线</div>
+          <div class="setrow" onclick="go('offline')">
+            <div class="sl"><div class="sh">已完整存到本机</div><div class="sp">676 条 · 18.4 MB · 断网可读</div></div>
+            <div class="sv">管理 ›</div>
+          </div>
+
+          <div class="label">关于</div>
+          <div class="row">
+            <div class="rl"><div class="rh">证据等级和性价比档怎么读</div><div class="rp">A/B/C 说的是数字可不可信；性价比说的是值不值得做</div></div>
+            <div class="rv">›</div>
+          </div>
+          <div class="row">
+            <div class="rl"><div class="rh">版权与许可 · 免责</div><div class="rp">CC BY 4.0 · 出处、许可证、改动说明</div></div>
+            <div class="rv">›</div>
+          </div>
+          <button class="bt block" style="margin-top:18px">立即检查内容更新</button>
+        </section>
+
+        <!-- 6 离线管理 -->
+        <section class="screen" id="sc-offline">
+          <div class="navbar"><span class="back" onclick="back()">‹</span><span class="crumb">离线</span></div>
+          <div class="offwrap">
+            <div class="oh" id="offHead">已完整存到本机</div>
+            <div class="od" id="offMeta">676 条 · 18.4 MB · 上次校验 10 月 10 日 12:40</div>
+            <div class="bar"><div class="fill" id="offFill" style="width:100%"></div></div>
+            <div class="mono t3" style="font-size:11.5px;line-height:1.7" id="offTip">下载完成后不需要联网也能读，地铁、飞机、医院候诊都能用。</div>
+
+            <div class="badge">
+              <span class="bi">✓</span>
+              <div>
+                <div class="bt2">断网可读</div>
+                <div class="bs">34 节 + 9 篇长文 + 136 篇核实记录</div>
+              </div>
+            </div>
+
+            <div class="offlist">
+              <div class="offitem">1 节 · 不要早死<span class="st">43 条 ✓</span></div>
+              <div class="offitem">2 节 · 不要慢慢死<span class="st">44 条 ✓</span></div>
+              <div class="offitem">3 节 · 不要浪费精力<span class="st">25 条 ✓</span></div>
+              <div class="offitem wait">其余 31 节<span class="st">已存</span></div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:22px">
+              <button class="bt" style="flex:1" onclick="simDownload()">重新校验全书</button>
+              <button class="bt" style="flex:1">清空缓存</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="actbar" id="actbar" style="display:none">
+        <button class="bt" style="flex:1">☆ 收藏</button>
+        <button class="bt pri" style="flex:2" onclick="addItem(this)">＋ 加进清单</button>
+      </div>
+
+      <nav class="tabbar">
+        <div class="tb on" data-t="today" onclick="go('today')"><span class="mk"></span><span class="lb">今天</span></div>
+        <div class="tb" data-t="search" onclick="go('search')"><span class="mk"></span><span class="lb">检索</span></div>
+        <div class="tb" data-t="list" onclick="go('list')"><span class="mk"></span><span class="lb">清单</span><span class="bdg" id="tabBadge">2</span></div>
+        <div class="tb" data-t="mine" onclick="go('mine')"><span class="mk"></span><span class="lb">我的</span></div>
+      </nav>
+    </div>
+
+    <!-- 规范 -->
+    <div class="specs">
+      <section class="spec">
+        <h2>01 · 重设计的四个判断</h2>
+        <p class="lede">
+          现有设计语言（<b>宋体承载内容、等宽承载数据、颜色只承载语义、找不到出处就不画</b>）
+          是这本书的身份，全部保留。改的是<b>信息的顺序和层级</b>，不是风格。
+        </p>
+        <div class="obs">
+          <div class="ob"><div class="obk">首屏</div><div class="obt">从「书的目录」改为「今天该做的一条」——首屏唯一的大块，直接带加清单动作。</div></div>
+          <div class="ob"><div class="obk">找问题</div><div class="obt">34 个问题按处境分五组（身体 / 习惯 / 钱 / 关系 / 精力），不再是一条平铺长列表。</div></div>
+          <div class="ob"><div class="obk">条目详情</div><div class="obt">「说人话」上移到首屏第一块；成本签跟在结论后；收益/成本/来源依次展开。</div></div>
+          <div class="ob"><div class="obk">清单</div><div class="obt">从「收藏 + 打卡」改为行动看板：今天 / 稍后 / 已完成 / 收藏，配连续天数。</div></div>
+          <div class="ob"><div class="obk">离线</div><div class="obt">从首页第 6 屏的设置项，提升为常驻状态条 + 全屏进度 + 完成徽章。</div></div>
+          <div class="ob"><div class="obk">版本</div><div class="obt">用「2026 年 10 月 9 日 · 676 条」说话，提交号留给「版本与更新」详情页。</div></div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>02 · 色板（只承载语义）</h2>
+        <p class="lede">
+          主色柏绿同时是「证据 A」与「可执行动作」的颜色；赭红只用于「争议 / 待核实」，不参与装饰。
+          暗色档已按 <b>≥ 4.5:1</b> 调整小字对比度。
+        </p>
+        <div class="colors">
+          <div class="col"><div class="chipc" style="background:#2F5D50"></div><div class="cl"><div class="cn">--green</div><div class="cd">主色 · 证据 A · 动作<br>#2F5D50 / 暗 #7FBFA6</div></div></div>
+          <div class="col"><div class="chipc" style="background:#A9761B"></div><div class="cl"><div class="cn">--amber</div><div class="cd">证据 B · 需注意<br>#A9761B / 暗 #D6A855</div></div></div>
+          <div class="col"><div class="chipc" style="background:#8C918D"></div><div class="cl"><div class="cn">--gray</div><div class="cd">证据 C · 元信息<br>#8C918D</div></div></div>
+          <div class="col"><div class="chipc" style="background:#9C3B2E"></div><div class="cl"><div class="cn">--red</div><div class="cd">仅争议 / 待核实<br>#9C3B2E / 暗 #D4796A</div></div></div>
+          <div class="col"><div class="chipc" style="background:#F4F5F2"></div><div class="cl"><div class="cn">--paper</div><div class="cd">页面底<br>#F4F5F2 / 暗 #15181A</div></div></div>
+          <div class="col"><div class="chipc" style="background:#FFFFFF;border-bottom:1px solid #E3E4DF"></div><div class="cl"><div class="cn">--card</div><div class="cd">卡片底<br>#FFFFFF / 暗 #1D2124</div></div></div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>03 · 字阶与可读性</h2>
+        <table class="tb">
+          <tr><th>角色</th><th>字号</th><th>字体</th><th>变化</th></tr>
+          <tr><td class="k">书名</td><td>44rpx</td><td>宋</td><td>—</td></tr>
+          <tr><td class="k">条目标题</td><td>36rpx</td><td>宋</td><td>32 → 36</td></tr>
+          <tr><td class="k">正文</td><td>30rpx</td><td>宋 · 行高 1.9</td><td>28 → 30，下限 26</td></tr>
+          <tr><td class="k">列表摘要</td><td>26rpx</td><td>黑 · 行高 1.65</td><td>23 → 26</td></tr>
+          <tr><td class="k">数据 / 标签</td><td>22–24rpx</td><td>等宽 · tabular-nums</td><td>—</td></tr>
+          <tr><td class="k">元信息</td><td>22rpx</td><td>等宽</td><td>21 → 22</td></tr>
+        </table>
+        <div class="tagline">规则：一切数字用等宽；正文（宋）行高 1.9，界面（黑）1.6；一个屏幕只允许一个主按钮。</div>
+      </section>
+
+      <section class="spec">
+        <h2>04 · 流程：两步到达「做什么」</h2>
+        <table class="tb">
+          <tr><th>场景</th><th>原路径</th><th>新路径</th></tr>
+          <tr>
+            <td class="k">我有高血压</td>
+            <td>首页（滑 3 屏）→ 34 问题列表 → 节详情（43 条）→ 扫标题 → 条目详情</td>
+            <td>首屏「找问题 · 身体与安全」→ 条目详情（说人话首屏可见）</td>
+          </tr>
+          <tr>
+            <td class="k">决定戒烟</td>
+            <td>详情页加清单 → 清单看到 n/m 进度 → 手动打勾</td>
+            <td>详情页加清单 → 清单「今天」→ 打勾 → 连续天数 +1</td>
+          </tr>
+          <tr>
+            <td class="k">飞机上要读</td>
+            <td>首页滑到第 6 屏 → 下载 → toast</td>
+            <td>首屏离线条 → 全屏进度 → 完成徽章「断网可读」</td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="spec">
+        <h2>05 · 组件：成本签与两轴标注</h2>
+        <p class="lede">
+          成本签（钱 / 时间 / 毅力 / 收益 / 口径）是产品的指纹，任何列表行都带着它，
+          让「零成本高收益」在滚动中一眼可辨 —— <b>绿色即「不用花什么」</b>。
+          证据徽章与性价比条保持正交，不合成一个分数（合成会丢掉「数字可信度」与「值不值得」的区别）。
+        </p>
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:3px;padding:16px;color:var(--ink2)">
+          <div class="cost" style="border-top:0;margin-top:0">
+            <div class="c"><span class="k">钱</span><span class="v zero" style="color:var(--green)">不花钱</span></div>
+            <div class="c"><span class="k">时间</span><span class="v zero" style="color:var(--green)">不占时间</span></div>
+            <div class="c"><span class="k">毅力</span><span class="v zero" style="color:var(--green)">不用毅力</span></div>
+            <div class="c"><span class="k">收益</span><span class="v">收益大</span></div>
+            <div class="c"><span class="k">口径</span><span class="v">换寿命</span></div>
+          </div>
+          <div class="marks">
+            <span class="eb A sm">A</span><span class="eb B sm">B</span><span class="eb C sm">C</span>
+            <span style="width:14px"></span>
+            <span class="tier r1"><i></i><i></i><i></i></span>
+            <span class="tier r2"><i></i><i></i><i></i></span>
+            <span class="tier r3"><i></i><i></i><i></i></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec">
+        <h2>06 · 落地顺序</h2>
+        <table class="tb">
+          <tr><th>批次</th><th>内容</th><th>理由</th></tr>
+          <tr><td class="k">第一批</td><td>首页重构 + 问题分组 + 详情结论上移 + 清单改行动看板</td><td>四者共享同一份字段变更，一起改一次联调</td></tr>
+          <tr><td class="k">第二批</td><td>离线状态条与全屏下载 + 检索分层 + 我的页重排 + 字号上调 + 埋点</td><td>互相独立，可并行</td></tr>
+          <tr><td class="k">第三批</td><td>新用户引导、单条分享卡片</td><td>等第一批数据验证后再定</td></tr>
+        </table>
+        <div class="tagline">完整诊断、指标体系与排期见 design/PRODUCT-REVIEW.md</div>
+      </section>
+    </div>
+  </div>
+
+  <div class="footer">原型为静态演示；内容取自上游客源真实条目（系安全带 / 低钠盐），数字为示例。上一版静态并排版见 prototype.html。</div>
+</div>
+
+<script>
+const ITEMS = [
+  { title:'系安全带，前排后排都系', ev:'A', ratio:'极高', r:3,
+    tag:{money:['不花钱',1],time:['不占时间',1],will:['不用毅力',1],benefit:['收益大',0],caliber:['换寿命',0]},
+    plain:'坐前排系上安全带，出车祸时被撞死的概率大约降一半。坐轻型卡车前排的降六成。' },
+  { title:'把家里的食盐换成低钠盐（钾盐）', ev:'A', ratio:'一般', r:1,
+    tag:{money:['花一点',0],time:['不占时间',1],will:['不用毅力',1],benefit:['收益中',0],caliber:['换寿命',0]},
+    plain:'把普通食盐换成低钠盐，血压会降一点。代价是味道略不同、贵一点。肾功能不好的人换之前先问医生。' },
+  { title:'家里装一个会响的一氧化碳报警器', ev:'B', ratio:'极高', r:3,
+    tag:{money:['花一点',0],time:['不占时间',1],will:['不用毅力',1],benefit:['收益大',0],caliber:['换寿命',0]},
+    plain:'一氧化碳没有味道，人睡着时闻不到。装一个几十块的报警器，插上就不用再管。' },
+  { title:'睡够 7 小时，别指望周末补', ev:'B', ratio:'高', r:2,
+    tag:{money:['不花钱',1],time:['占很多',0],will:['要一点',0],benefit:['收益大',0],caliber:['换寿命',0]},
+    plain:'长期睡不够和很多病相关。周末补觉补不回工作日的账，规律作息才是关键。' }
+];
+const KEYS = [['money','钱'],['time','时间'],['will','毅力'],['benefit','收益'],['caliber','口径']];
+
+let idx = 0, added = 2, backTo = 'today';
+
+function renderToday(){
+  const it = ITEMS[idx % ITEMS.length];
+  document.getElementById('todayTitle').textContent = it.title;
+  document.getElementById('todayPlain').textContent = it.plain;
+  const ev = document.getElementById('todayEv');
+  ev.className = 'eb ' + it.ev + ' sm'; ev.textContent = it.ev;
+  document.getElementById('todayTier').className = 'tier r' + it.r;
+  document.getElementById('todayRatio').textContent = '性价比 ' + it.ratio;
+  document.getElementById('todayCost').innerHTML = KEYS.map(([k,label])=>{
+    const [v,zero] = it.tag[k];
+    return `<div class="c"><span class="k">${label}</span><span class="v${zero?' zero':''}">${v}</span></div>`;
+  }).join('');
+}
+function shuffle(){ idx++; renderToday(); }
+
+function addItem(btn){
+  if (btn.dataset.on){
+    delete btn.dataset.on; btn.textContent = '＋ 加进清单';
+    btn.classList.remove('done'); btn.classList.add('pri');
+    added = Math.max(0, added-1);
+  } else {
+    btn.dataset.on = '1'; btn.textContent = '已加进清单 ✓';
+    btn.classList.remove('pri'); btn.classList.add('done');
+    added++;
+  }
+  const b = document.getElementById('tabBadge');
+  b.textContent = added; b.style.display = added ? 'block' : 'none';
+}
+
+function toggleRow(el){
+  const on = el.classList.toggle('chk');
+  el.textContent = '✓';
+  el.closest('.crow').classList.toggle('done', on);
+}
+
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  const sc = document.getElementById('sc-' + name);
+  if (sc) sc.classList.add('on');
+  document.getElementById('viewport').scrollTop = 0;
+  document.getElementById('actbar').style.display = (name === 'detail') ? 'flex' : 'none';
+  document.querySelectorAll('.tabbar .tb').forEach(t=>t.classList.toggle('on', t.dataset.t === name));
+  if (name !== 'offline' && name !== 'detail') backTo = name;
+}
+function back(){ go(backTo || 'today'); }
+
+function simDownload(){
+  const fill = document.getElementById('offFill'),
+        head = document.getElementById('offHead'),
+        meta = document.getElementById('offMeta'),
+        tip  = document.getElementById('offTip');
+  let p = 0;
+  head.textContent = '正在存到本机';
+  tip.textContent = '可以随时中断，下次接着存。';
+  const t = setInterval(()=>{
+    p += Math.random()*13 + 5;
+    if (p >= 100){
+      p = 100; clearInterval(t);
+      head.textContent = '已完整存到本机';
+      tip.textContent = '下载完成后不需要联网也能读，地铁、飞机、医院候诊都能用。';
+      meta.textContent = '676 条 · 18.4 MB · 刚刚校验';
+    } else {
+      meta.textContent = `正在存第 ${Math.min(34, Math.ceil(p/100*34))} 节 · ${Math.round(p)}%`;
+    }
+    fill.style.width = p + '%';
+  }, 240);
+}
+
+function setTheme(dark){
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('btnLight').classList.toggle('on', !dark);
+  document.getElementById('btnDark').classList.toggle('on', dark);
+}
+document.getElementById('btnLight').onclick = ()=>setTheme(false);
+document.getElementById('btnDark').onclick  = ()=>setTheme(true);
+document.getElementById('btnReset').onclick = ()=>{ idx=0; renderToday(); go('today'); };
+
+renderToday();
+</script>
+</body>
+</html>
