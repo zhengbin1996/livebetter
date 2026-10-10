@@ -280,6 +280,7 @@ S2/S3 缺。
 | --- | --- |
 | `design/PRODUCT-REVIEW.md` | 本文（诊断 + 架构 + 指标 + 排期） |
 | `design/prototype.html` | 高保真可交互原型（6 屏 + 浅/暗切换 + 设计规范） |
+| `design/preview-shipped.png` | 第一批落地后的四个屏幕（今天 · 浅/暗、条目详情、清单）
 | `miniprogram/custom-tab-bar/index.wxss` | 暗色 tabBar 修复（已上线） |
 | `build/check_miniprogram.py` | 静态检查第 [9] 项（tabBar 变量自给，已上线） |
 
