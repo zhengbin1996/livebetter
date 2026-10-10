@@ -1,4 +1,13 @@
 .tabbar {
+  /* ⚠️ 自定义 tabBar 的节点不挂在 page 下面，**继承不到** app.wxss 里
+     `page { --ink3: ... }` 定义的 CSS 变量 —— var() 静默落空，文字掉回默认黑色。
+     浅色模式下是「白底黑字」不易察觉；暗色模式下背景被 @media 转暗，
+     就成了「暗底黑字」完全看不清（真机实测）。
+     所以这里用到的变量必须在组件内自己定义，取值与 app.wxss 保持同步。 */
+  --line: #E3E4DF;
+  --ink3: #8C918D;
+  --green: #2F5D50;
+  --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   position: fixed;
   left: 0; right: 0; bottom: 0;
   height: calc(108rpx + env(safe-area-inset-bottom));
@@ -10,7 +19,12 @@
   z-index: 800;
 }
 @media (prefers-color-scheme: dark) {
-  .tabbar { background: rgba(24, 27, 29, .94); }
+  .tabbar {
+    --line: #2C3135;
+    --ink3: #8F9791;
+    --green: #7FBFA6;
+    background: rgba(24, 27, 29, .94);
+  }
 }
 
 .tabbar .tb {

@@ -9,6 +9,8 @@
   6. 主包体积是否超 2 MB（分包是否超 2 MB）
   7. 云函数 config.json 的定时触发器 cron 是否为合法的 7 段（markdown 里抄给用户的示例也一起查）
   8. WXSS 的选择器里是否混入了非 ASCII 字符（中文类名会让解析器直接崩）
+  9. 自定义 tabBar 的 wxss 里 var(--x) 引用的变量是否都在组件内定义
+     （tabBar 节点不挂在 page 下，继承不到 page 变量，暗色模式会「暗底黑字」）
 
 **为什么需要它**：小程序的相对路径是按「文件所在目录」算的，
 子包页面比主包页面深两层，从主包文件拷过去的 `../../` 会**静默少一层** ——
@@ -348,6 +350,76 @@ def check_wxss_selectors() -> None:
         ok(f"检查 {n} 个选择器，全部为 ASCII")
 
 
+# ---------------------------------------------------------------- 9 tabBar 变量自给
+
+VAR_USE_RE = re.compile(r"var\((--[\w-]+)")
+VAR_DEF_RE = re.compile(r"(--[\w-]+)\s*:")
+
+
+def strip_media_blocks(src: str) -> str:
+    """删掉 @media ... { ... } 整段（花括号配对，支持一层以上嵌套）。
+
+    用途：CSS 变量的「兜底定义」必须在**基础块**里（@media 只是按主题覆盖），
+    所以检查定义够不够时，要把 @media 里的覆盖定义排除掉再数。
+    """
+    out = []
+    i = 0
+    while True:
+        j = src.find("@media", i)
+        if j < 0:
+            out.append(src[i:])
+            break
+        out.append(src[i:j])
+        k = src.find("{", j)
+        if k < 0:
+            break
+        depth = 1
+        p = k + 1
+        while p < len(src) and depth:
+            if src[p] == "{":
+                depth += 1
+            elif src[p] == "}":
+                depth -= 1
+            p += 1
+        i = p
+    return "".join(out)
+
+
+def check_tabbar_vars() -> None:
+    """自定义 tabBar 用到的 CSS 变量必须在组件自己的 wxss 里定义。
+
+    自定义 tabBar 的节点**不挂在 page 下面**，继承不到 app.wxss 里
+    `page { --ink3: ... }` 定义的变量 —— var() 静默落空、文字掉回默认黑色。
+    浅色下「白底黑字」不易察觉；暗色下背景被 @media 转暗就成了「暗底黑字」，
+    真机上完全看不清（已真实发生）。页面内组件没有这个问题（节点在 page 下），
+    所以只查 custom-tab-bar 目录。
+
+    判定口径：定义必须出现在**基础块**（非 @media）里 —— @media 只是按主题
+    覆盖，基础块没定义的话，对应主题下 var() 照样落空。
+    """
+    log("[9] 自定义 tabBar 的 CSS 变量自给")
+    tb_dir = ROOT / "custom-tab-bar"
+    files = sorted(tb_dir.glob("*.wxss")) if tb_dir.is_dir() else []
+    if not files:
+        ok("没有自定义 tabBar，跳过")
+        return
+    n = 0
+    bad = 0
+    for f in files:
+        src = COMMENT_RE.sub("", f.read_text(encoding="utf-8"))
+        used = set(VAR_USE_RE.findall(src))
+        defined = set(VAR_DEF_RE.findall(strip_media_blocks(src)))
+        n += len(used)
+        for name in sorted(used - defined):
+            fail(
+                f"{rel(f)} 引用了 var({name}) 但基础块里没有定义 —— "
+                f"自定义 tabBar 继承不到 page 变量，必须在组件 wxss 的基础块里自己定义"
+            )
+            bad += 1
+    if not bad:
+        ok(f"检查 {n} 个变量引用，全部在基础块有定义")
+
+
 def main() -> int:
     log(f"检查 {ROOT}")
     check_app_json()
@@ -356,6 +428,7 @@ def main() -> int:
     check_size()
     check_cloudfunction_triggers()
     check_wxss_selectors()
+    check_tabbar_vars()
     if problems:
         log(f"\n{len(problems)} 个问题")
         return 1
