@@ -9,6 +9,10 @@ Page({
   data: {
     loading: true,
     offline: false,
+    /** 内容版本对不上、分片里没有这一条（与 offline 区别对待，提示与出路都不同） */
+    notFound: false,
+    /** 命中了跨版本兜底：是按「同一条的位置」打开的另一版正文 */
+    stale: false,
     item: null,
     sec: 0,
     secTitle: '',
@@ -34,18 +38,28 @@ Page({
   },
 
   async onLoad(query) {
+    // 存下来给「重试」用：小程序里**没有** this.options（那是别的框架的习惯），
+    // 之前 onRetry 取 this.options 恒为 undefined → 重试时退化成空参数 →
+    // 又落到 BAD_PARAM，再弹一次「这条建议没找到」。
+    this.query = query || {}
     await app.ready
     this.setData({ labelMap: ((app.globalData.essentials || {}).legend || {}).tagLabels || null })
-    await this.load(query)
+    await this.load(this.query)
   },
 
   async load(query) {
     this.setData({ loading: true })
     try {
-      const { shard, item, error } = await content.resolveItem(query)
+      const { shard, item, error, stale } = await content.resolveItem(query)
       if (!item) {
-        this.setData({ loading: false, offline: error === 'NOT_FOUND' })
-        wx.showToast({ title: '这条建议没找到', icon: 'none' })
+        this.setData({ loading: false, offline: error === 'NOT_FOUND', notFound: !error || error === 'NOT_FOUND' })
+        // 三种情况对用户含义完全不同，不能都报「没找到」：
+        //   参数脏（旧链接 `?sid=undefined`）/ 内容版本对不上 / 真离线
+        if (error === 'BAD_PARAM') {
+          wx.showToast({ title: '这条链接不对，回上一页重进', icon: 'none' })
+        } else if (error === 'NOT_FOUND') {
+          wx.showToast({ title: '内容可能已更新，去检索里找找', icon: 'none' })
+        }
         return
       }
       const f = item.fields || {}
@@ -54,7 +68,9 @@ Page({
       this.setData({
         loading: false,
         offline: false,
+        notFound: false,
         item,
+        stale: !!stale,
         sec: shard.sec,
         secTitle: shard.secTitle,
         crumb: fmt.crumb(shard.sec, item.num, shard.secTitle),
@@ -76,7 +92,9 @@ Page({
       wx.setNavigationBarTitle({ title: `${item.num}. ${item.title}`.slice(0, 18) })
       this.loadTitles(item)
     } catch (err) {
-      this.setData({ loading: false, offline: true })
+      // 分片没拿到（离线且未缓存）—— 与「内容里没这条」是两回事，别混成一句提示
+      console.error('[item-detail] 取正文失败：', err)
+      this.setData({ loading: false, offline: true, notFound: false })
     }
   },
 
@@ -190,6 +208,10 @@ Page({
   },
 
   onRetry() {
-    this.load(this.options || {})
+    this.load(this.query || {})
+  },
+
+  onSearch() {
+    wx.switchTab({ url: '/pages/search/index' })
   },
 })

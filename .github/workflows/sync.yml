@@ -73,6 +73,13 @@ jobs:
             node "$f"
           done
 
+      - name: 构建层逻辑单测（id 迁移表等）
+        run: |
+          for f in build/tests/test_*.py; do
+            echo "== $f"
+            python "$f"
+          done
+
       - name: 校验并摊平 Release 资产
         run: python build/stage_release.py
 

@@ -72,9 +72,25 @@ Page({
     this.setData({ items })
   },
 
+  /**
+   * item-row 是自定义组件：它在 onTap 里 `triggerEvent('tapitem', { sid, item })`，
+   * 参数落在 **e.detail**，不是 e.currentTarget.dataset（那是原生事件的取法）。
+   * 之前取 dataset.sid 恒为 undefined，跳过去变成 `?sid=undefined`，
+   * 详情页解析不出节号就弹「这条建议没找到」—— 节内列表每点一条必现。
+   * 另外带上条号：万一 sid 与云端内容版本对不上，详情页还能按条号兜底落到同一条。
+   */
   goItem(e) {
-    const sid = e.currentTarget.dataset.sid
-    wx.navigateTo({ url: `/pages/item-detail/index?sid=${sid}` })
+    const d = (e && e.detail) || {}
+    const it = d.item || null
+    const sid = d.sid || (it && it.sid) || ''
+    if (!sid) {
+      // 不能静默：绑定形状再写错时，这里必须留下线索
+      console.error('[section-detail] tapitem 没有带 sid：', e)
+      wx.showToast({ title: '这条打不开，请退回重进', icon: 'none' })
+      return
+    }
+    const num = it && it.num ? `&num=${it.num}` : ''
+    wx.navigateTo({ url: `/pages/item-detail/index?sid=${sid}${num}` })
   },
 
   onLinkTap(e) {

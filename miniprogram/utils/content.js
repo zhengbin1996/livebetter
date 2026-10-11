@@ -225,22 +225,73 @@ function secFromSid(sid) {
 }
 
 /**
+ * 用主包内置的 sid 索引把 sid 换回「节 + 条号」。
+ *
+ * sid 是 `s{节}-{标题 sha1}` —— **上游一改标题 sid 就变**，而收藏、清单、
+ * 交叉引用里存的都是老 sid。索引随主包内置（构建期由 dist/ids.json 精简而来，
+ * 676 条约 16KB），所以哪怕正文分片还没下下来、或者分片是另一个内容版本，
+ * 也能把「这是哪一节第几条」还原出来，不会让用户撞进死胡同。
+ */
+function sidIndexLookup(sid) {
+  const app = getApp()
+  const idx = (app && app.globalData.essentials && app.globalData.essentials.sidIndex) || null
+  const hit = idx && idx[sid]
+  if (!hit || !hit.length) return null
+  return { sec: hit[0], num: hit[1] }
+}
+
+/**
  * 定位一条建议：优先按 sid（稳定主键），退化为「节号 + 条号」。
  * 用 sid 时不必信条号，所以上游删条目造成的条号漂移不影响这里。
+ *
+ * 返回的错误码是**分类**的 —— 三种情况对用户的含义完全不同，不能都报「没找到」：
+ *   BAD_PARAM  参数本身不对（例如旧版本跳来的 `?sid=undefined`）→ 提示链接有问题
+ *   NOT_FOUND  分片拿到了、但里面没有这个 sid（内容版本对不上）→ 兜底落到同一条
+ *   OFFLINE    分片没拿到且云端不可用（由 load() 抛出）→ 走离线引导
  */
 async function resolveItem(params) {
-  const sid = params && params.sid
+  const rawSid = (params && params.sid) || ''
+  // `?sid=undefined` / `?sid=null` 这类脏参数：能被拼出来，就必须被认出来
+  const sid = /^(undefined|null|NaN)?$/i.test(rawSid) ? '' : String(rawSid)
   let sec = params && params.sec ? parseInt(params.sec, 10) : null
-  const num = params && params.num ? parseInt(params.num, 10) : null
+  let num = params && params.num ? parseInt(params.num, 10) : null
   if (!sec && sid) sec = secFromSid(sid)
-  if (!sec) return { shard: null, item: null, error: 'BAD_PARAM' }
+  if (!sec && sid) {
+    // 主键解析不出节号时，也别急着死：内置索引里往往有
+    const byIdx = sidIndexLookup(sid)
+    if (byIdx) {
+      sec = byIdx.sec
+      if (!num) num = byIdx.num
+    }
+  }
+  if (!sec || isNaN(sec)) {
+    console.error('[resolveItem] 参数无法解析出节号：', JSON.stringify(params))
+    return { shard: null, item: null, error: 'BAD_PARAM' }
+  }
 
   const shard = await loadSection(sec)
+  const items = shard.items || []
   let item = null
-  if (sid) item = (shard.items || []).find((x) => x.sid === sid) || null
-  if (!item && num) item = (shard.items || [])[num - 1] || null
-  if (!item && !num && !sid) item = (shard.items || [])[0] || null
-  return { shard, item, error: item ? null : 'NOT_FOUND' }
+  let stale = false
+
+  if (sid) {
+    item = items.find((x) => x.sid === sid) || null
+    if (!item) {
+      // sid 对不上（内容版本变了）：用内置索引把它还原成条号，落到同一条
+      const byIdx = sidIndexLookup(sid)
+      const n = num || (byIdx && byIdx.sec === sec ? byIdx.num : null)
+      if (n) {
+        item = items[n - 1] || null
+        stale = !!item
+        if (!item) console.error('[resolveItem] sid 与条号都没落地：', sid, '->', n)
+      }
+    }
+  }
+  if (!item && num) item = items[num - 1] || null
+  if (!item && !num && !sid) item = items[0] || null
+
+  if (!item) console.error('[resolveItem] 这一节里找不到：', JSON.stringify(params))
+  return { shard, item, error: item ? null : 'NOT_FOUND', stale }
 }
 
 /* ---------------------------------------------------------------- 下载全书 */
@@ -375,6 +426,7 @@ module.exports = {
   refsMapEntry,
   longDocs,
   secFromSid,
+  sidIndexLookup,
   resolveItem,
   downloadAll,
   localStats,

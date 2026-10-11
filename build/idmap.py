@@ -15,6 +15,11 @@ from pathlib import Path
 from common import DIST, chars_for_search, log
 
 IDS_FILE = DIST / "ids.json"
+# 入库的上一版快照。**必须入库**：dist/ 是每次构建的临时产物，
+# 构建第 7 步会把 dist/*.json 全删（含 ids.json），CI 又每次都是干净 checkout，
+# 于是「上一版」永远读不到 ⇒ prevIdMap 恒为空 ⇒ 上游改标题时用户的收藏/打卡
+# 静默失效（迁移逻辑是死代码）。放在 build/ 下并提交，就能跨构建、跨 CI 持久。
+SNAPSHOT_FILE = Path(__file__).resolve().parent / "ids-latest.json"
 RATIO_FLOOR = 0.55
 
 
@@ -80,6 +85,16 @@ def save(cur: dict, path: Path = IDS_FILE) -> None:
     path.write_text(
         json.dumps(cur, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
     )
+
+
+def load_snapshot() -> dict:
+    """读入库的上一版快照（build/ids-latest.json）。"""
+    return load_prev(SNAPSHOT_FILE)
+
+
+def save_snapshot(cur: dict) -> None:
+    """把本版快照写回 build/ids-latest.json（随提交滚动更新）。"""
+    save(cur, SNAPSHOT_FILE)
 
 
 def report(prev: dict, cur: dict, prev_map: dict) -> None:

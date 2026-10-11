@@ -13,6 +13,9 @@
      （tabBar 节点不挂在 page 下，继承不到 page 变量，暗色模式会「暗底黑字」）
   10. wxml 里 bind*/catch* 绑定的方法，是否在同名 js 里有定义
       （写错一个字母，开发者工具只在控制台打一行 warning，真机上点下去**毫无反应**）
+  11. 处理函数读 `e.currentTarget.dataset.X` 时，绑定点是否真的给了 `data-X`
+      （没给就恒为 undefined —— 这次「节内列表点进去说找不到」就是这么来的：
+       自定义组件的事件参数在 e.detail 里，用 dataset 取法取不到）
 
 **为什么需要它**：小程序的相对路径是按「文件所在目录」算的，
 子包页面比主包页面深两层，从主包文件拷过去的 `../../` 会**静默少一层** ——
@@ -471,6 +474,80 @@ def check_event_bindings() -> None:
         ok(f"检查 {n} 个事件绑定，全部有对应方法")
 
 
+# ---------------------------------------------------------------- 11 dataset 一致性
+
+# 逐个标签抓属性串（引号内的 > 不算标签结束，wxml 里属性值常含中文与花括号）
+TAG_RE = re.compile(r"""<([A-Za-z][\w-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>""", re.S)
+BIND_NAME_RE = re.compile(r"""(?:bind|catch|capture-bind|capture-catch|mut-bind)[:]?[A-Za-z]+\s*=\s*"([^"{}\s]+)\"""")
+DATA_ATTR_RE = re.compile(r"\bdata-([\w-]+)\s*=")
+# 读法只认 e.currentTarget.dataset.x / e.target.dataset.x / event.currentTarget.dataset.x
+DATASET_READ_RE = re.compile(r"\b(?:e|event)\.(?:currentTarget|target)\.dataset\.(\w+)")
+
+
+def _method_bodies(src: str) -> dict[str, str]:
+    """取「方法名 → 方法体」。用**花括号配对**切，不能靠固定长度截取。
+
+    第一版按「往后 600 字符」取，结果方法体串到了下一个方法里，
+    于是一堆不相干的函数被误报（这一步踩过一次，别再改回去）。
+    """
+    out: dict[str, str] = {}
+    for m in re.finditer(r"(?:^|[\s,{])([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{", src, re.M):
+        i = m.end() - 1
+        depth = 0
+        j = i
+        while j < len(src):
+            if src[j] == "{":
+                depth += 1
+            elif src[j] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        out[m.group(1)] = src[i : j + 1]
+    return out
+
+
+def check_dataset_bindings() -> None:
+    """处理函数读 `e.currentTarget.dataset.X`，绑定点就得给 `data-X`。
+
+    取不到时 `dataset.X` 是 `undefined`，代码不会报错，只是拿着 undefined
+    往下走 —— 典型症状就是「点进去说找不到这条」。真凶一般是**自定义组件**：
+    它 `triggerEvent('tapitem', payload)` 的参数在 `e.detail` 里，用原生事件的
+    取法去 `dataset` 上找，永远拿不到。
+    只查「确实在该 wxml 里有绑定点」的函数；纯代码调用的方法不参与。
+    """
+    log("[11] 处理函数读取的 dataset 与绑定点一致")
+    n = 0
+    bad = 0
+    for wxml in sorted(ROOT.rglob("*.wxml")):
+        if "components/mp-html" in rel(wxml):
+            continue  # 第三方内联组件，不查
+        js = wxml.with_suffix(".js")
+        if not js.is_file():
+            continue
+        src = COMMENT_RE.sub("", js.read_text(encoding="utf-8"))
+        provided: dict[str, set[str]] = {}
+        for m in TAG_RE.finditer(wxml.read_text(encoding="utf-8")):
+            attrs = m.group(2)
+            keys = set(DATA_ATTR_RE.findall(attrs))
+            for h in BIND_NAME_RE.findall(attrs):
+                provided.setdefault(h, set()).update(keys)
+        for name, body in _method_bodies(src).items():
+            if name not in provided:
+                continue
+            n += 1
+            missing = sorted(set(DATASET_READ_RE.findall(body)) - provided[name])
+            for key in missing:
+                where = f"{rel(wxml)} 的 {name}()"
+                fail(
+                    f"{where} 读了 dataset.{key}，但绑定点没给 data-{key}"
+                    f"（恒为 undefined；若绑的是自定义组件，参数在 e.detail 里）"
+                )
+                bad += 1
+    if not bad:
+        ok(f"检查 {n} 个绑定点，dataset 读取全部有出处")
+
+
 def main() -> int:
     log(f"检查 {ROOT}")
     check_app_json()
@@ -481,6 +558,7 @@ def main() -> int:
     check_wxss_selectors()
     check_tabbar_vars()
     check_event_bindings()
+    check_dataset_bindings()
     if problems:
         log(f"\n{len(problems)} 个问题")
         return 1

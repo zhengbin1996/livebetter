@@ -181,7 +181,8 @@ Page({
   onPickOpen() {
     const p = this.data.pick
     if (!p) return
-    wx.navigateTo({ url: `/pages/item-detail/index?sid=${p.sid}` })
+    // 带上条号：万一内置索引与云端分片版本不一致，详情页还能按条号兜底落到同一条
+    wx.navigateTo({ url: `/pages/item-detail/index?sid=${p.sid}${p.n ? `&num=${p.n}` : ''}` })
   },
 
   /** 首屏就能行动：列表层直接加进清单，不必先进详情页 */

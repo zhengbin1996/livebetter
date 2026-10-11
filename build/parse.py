@@ -809,6 +809,10 @@ def main() -> int:
             for s in sections
         ],
         "problems": meta["problems"],
+        # 全量 sid → [节号, 条号]。sid 是「节号 + 标题哈希」，上游改标题就换 id，
+        # 而收藏/清单/交叉引用里存的都是老 id。索引随主包内置（676 条约 16 KB），
+        # 详情页在「分片里没有这个 sid」时据此兜底落到同一条，不会给用户死胡同。
+        "sidIndex": {it["sid"]: [s["sec"], it["num"]] for s in sections for it in s["items"]},
         # 分组元信息（名称/语义色/该组问题数），供首屏「找问题」分组渲染
         "problemGroups": [
             {
@@ -885,6 +889,41 @@ def main() -> int:
             ),
         },
     }
+    # ---- 索引一致性硬不变量
+    # 这三条一旦失配，用户看到的就是「点进去说没找到」这类死胡同：
+    #   · sidIndex 少一条   → 跨版本兜底失效
+    #   · sidIndex 指错位置 → 兜底落到**别的条目**（比找不到更糟）
+    #   · picks / 引用指向不存在的 sid → 首屏和正文里出现打不开的链接
+    # 宁可让 CI 红，也不要静默产出对不上的索引。
+    sid_index = essentials["sidIndex"]
+    idx_bad: list[str] = []
+    if len(sid_index) != total_items:
+        idx_bad.append(f"sidIndex {len(sid_index)} 条 ≠ 全书 {total_items} 条")
+    for s in sections:
+        for it in s["items"]:
+            got = sid_index.get(it["sid"])
+            if got != [s["sec"], it["num"]]:
+                idx_bad.append(f"{it['sid']} 索引 {got} ≠ 实际 {[s['sec'], it['num']]}")
+    for p in essentials["picks"]:
+        if sid_index.get(p["sid"]) != [p["s"], p["n"]]:
+            idx_bad.append(f"pick {p['sid']} 的位置与索引不符")
+    ref_targets = set()
+    for s in sections:
+        for it in s["items"]:
+            ref_targets.update(r["toSid"] for r in it["refs"])
+        ref_targets.update(r["toSid"] for r in s.get("introRefs") or [])
+    dangling = sorted(t for t in ref_targets if t not in sid_index)
+    if dangling:
+        idx_bad.append(f"{len(dangling)} 处引用指向不存在的条目：{dangling[:3]}")
+    if idx_bad:
+        log("    !! 索引一致性不符（sidIndex / picks / 引用目标）：")
+        for m in idx_bad[:8]:
+            log(f"       - {m}")
+        ok_all = False
+    else:
+        log(f"    索引一致：sidIndex {len(sid_index)} 条覆盖全部条目，"
+            f"picks 与 {len(ref_targets)} 个引用目标全部命中")
+
     size_e = dump("essentials.json", essentials, "essentials")
 
     # 顺手同步一份到小程序主包：essentials 是「安装即有」的首屏索引，
@@ -921,9 +960,14 @@ def main() -> int:
 
     # ---- id 快照与迁移表
     cur_ids = idmap.snapshot(sections)
-    prev_ids = idmap.load_prev(dist / "ids.json")
+    # 上一版从**入库的快照**读，不从 dist/ 读：dist/ 刚在第 7 步被清空过，
+    # 读它永远是空表（这条坑让 prevIdMap 一直是 {} 很久没人发现）。
+    prev_ids = idmap.load_snapshot()
+    if not prev_ids:
+        prev_ids = idmap.load_prev(dist / "ids.json")
     prev_map, _ = idmap.build_map(prev_ids, cur_ids)
     idmap.save(cur_ids, dist / "ids.json")
+    idmap.save_snapshot(cur_ids)
     idmap.report(prev_ids, cur_ids, prev_map)
 
     # ---- manifest

@@ -1,5 +1,12 @@
 <view class="loading" wx:if="{{loading}}">正在取这条…</view>
 
+<!-- 内容对不上：与「没存到本机」分开写，出路也不同（前者去检索，后者去下载） -->
+<view class="empty" wx:elif="{{notFound}}">
+  <view class="h serif">这条内容对不上</view>
+  <view class="p">可能是上游更新后这条改了标题。去检索里按关键词找找，或退回上一页重进。</view>
+  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onSearch">去检索</view>
+</view>
+
 <view class="empty" wx:elif="{{offline}}">
   <view class="h serif">这条还没存到本机</view>
   <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
@@ -8,6 +15,11 @@
 
 <block wx:else>
   <view class="page page--flat">
+    <!-- 跨版本兜底：按内置索引落到同一条的位置，如实告诉用户 -->
+    <view class="stalenote" wx:if="{{stale}}">
+      内容已更新，这条是按最新版里的同一条打开的
+    </view>
+
     <view class="dbread" bindtap="goSection">{{crumb}} ›</view>
 
     <view class="dtitle">{{item.title}}</view>
