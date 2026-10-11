@@ -11,6 +11,8 @@
   8. WXSS 的选择器里是否混入了非 ASCII 字符（中文类名会让解析器直接崩）
   9. 自定义 tabBar 的 wxss 里 var(--x) 引用的变量是否都在组件内定义
      （tabBar 节点不挂在 page 下，继承不到 page 变量，暗色模式会「暗底黑字」）
+  10. wxml 里 bind*/catch* 绑定的方法，是否在同名 js 里有定义
+      （写错一个字母，开发者工具只在控制台打一行 warning，真机上点下去**毫无反应**）
 
 **为什么需要它**：小程序的相对路径是按「文件所在目录」算的，
 子包页面比主包页面深两层，从主包文件拷过去的 `../../` 会**静默少一层** ——
@@ -420,6 +422,55 @@ def check_tabbar_vars() -> None:
         ok(f"检查 {n} 个变量引用，全部在基础块有定义")
 
 
+# ---------------------------------------------------------------- 10 事件绑定
+
+# 匹配 bindtap / bind:tap / catchtap / capture-bind:tap / mut-bind:tap
+# 注意 `:` 与事件名都可选分隔（`bindtap` 与 `bind:tap` 等价）。
+BIND_RE = re.compile(r"""(?:bind|catch|capture-bind|capture-catch|mut-bind)[:]?[A-Za-z]+\s*=\s*"([^"]*)\"""")
+# js 里「定义了一个方法」的几种写法：`onTap() {` / `onTap: function ()` /
+# `onTap: () =>` / `onTap: async ()`。只取方法名，收成集合后再比。
+METHOD_DEF_RE = re.compile(
+    r"(?:^|[\s,{])([A-Za-z_$][\w$]*)\s*(?:\(|:\s*(?:function\b|\(|async\b))", re.M
+)
+
+
+def check_event_bindings() -> None:
+    """wxml 里绑定的事件处理函数，必须在同名 js 里定义。
+
+    写错一个字母（或删了方法忘了删绑定）**不会**在本地报错：开发者工具只在
+    控制台打一行 warning，真机上点下去毫无反应 —— 用户会直接当成 bug 报上来。
+    本次「顶部离线状态条点了没反应」属于相邻类别（绑定在、但反馈不可见），
+    这条检查只负责挡住「绑定根本不存在」的那一半。
+    `bindtap="{{...}}"` 这类动态绑定会跳过。
+    """
+    log("[10] wxml 事件绑定与 js 方法一致")
+    n = 0
+    bad = 0
+    for wxml in sorted(ROOT.rglob("*.wxml")):
+        if "components/mp-html" in rel(wxml):
+            continue  # 第三方内联组件，不查
+        js = wxml.with_suffix(".js")
+        if not js.is_file():
+            continue  # 缺 js 由第 [1] 项负责报
+        defined = set(METHOD_DEF_RE.findall(js.read_text(encoding="utf-8")))
+        bound: set[str] = set()
+        for v in BIND_RE.findall(wxml.read_text(encoding="utf-8")):
+            v = v.strip()
+            # 动态绑定 / 内联表达式 / 带参数的一律跳过
+            if not v or any(ch in v for ch in "{}() "):
+                continue
+            bound.add(v)
+        n += len(bound)
+        for name in sorted(bound - defined):
+            fail(
+                f"{rel(wxml)} 绑定了 {name}，但 {rel(js)} 里没有定义该方法"
+                f"（真机上点了不会有任何反应）"
+            )
+            bad += 1
+    if not bad:
+        ok(f"检查 {n} 个事件绑定，全部有对应方法")
+
+
 def main() -> int:
     log(f"检查 {ROOT}")
     check_app_json()
@@ -429,6 +480,7 @@ def main() -> int:
     check_cloudfunction_triggers()
     check_wxss_selectors()
     check_tabbar_vars()
+    check_event_bindings()
     if problems:
         log(f"\n{len(problems)} 个问题")
         return 1

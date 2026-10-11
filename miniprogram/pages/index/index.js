@@ -100,10 +100,12 @@ Page({
     this.buildPick(0)
   },
 
-  /** 首屏的离线状态条：三态（未存 / 下载中 / 已存） */
+  /** 首屏的离线状态条：三态（未存 / 下载中 / 已存）。
+   *  下载中态由 wxml 直接读 downloading + progress 渲染，不经过这里。
+   *  完整态刻意不带 action 文案 —— 「管理 ›」暗示可跳转但实际不跳，会被当成 bug。 */
   offlineStrip(cache, cloudSyncing) {
     if (cache.complete) {
-      return { tone: 'g', text: `已存本机 ${fmt.fmtBytes(cache.bytes)} · 断网可读`, action: '管理' }
+      return { tone: 'g', text: `已存本机 ${fmt.fmtBytes(cache.bytes)} · 断网可读`, action: '' }
     }
     if (cloudSyncing) {
       return { tone: 'off', text: '云端内容同步中，稍后可下载全书', action: '' }
@@ -259,10 +261,13 @@ Page({
   /* ---------------------------------------------------------------- 离线 */
 
   onOfflineTap() {
+    // 下载中：进度就在状态条上，重复触发没有意义
+    if (this.data.downloading) return
     if (this.data.cache && this.data.cache.complete) {
       wx.showToast({ title: '全书已在手机里，断网也能读', icon: 'none' })
       return
     }
+    // 点击的瞬间 downloading 置 true，状态条就地切到「下载中」态 —— 反馈发生在指尖
     this.onDownload()
   },
 

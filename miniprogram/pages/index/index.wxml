@@ -1,9 +1,18 @@
 <view class="page">
-  <!-- 离线状态条：常驻首屏顶部。这是产品最强的差异点，不该藏在第 6 屏 -->
+  <!-- 离线状态条：常驻首屏顶部。这是产品最强的差异点，不该藏在第 6 屏。
+       点击后反馈必须发生在条自身（就地反馈），进度不能只渲染在页面底部。 -->
   <view class="ostrip" bindtap="onOfflineTap">
-    <text class="odot {{offline.tone}}"></text>
-    <text class="ostrip-t">{{offline.text}}</text>
-    <text class="ostrip-a mono" wx:if="{{offline.action}}">{{offline.action}} ›</text>
+    <block wx:if="{{downloading}}">
+      <text class="odot a"></text>
+      <text class="ostrip-t">下载中 · {{progress.text}}</text>
+      <text class="ostrip-a mono">{{progress.percent}}%</text>
+      <view class="obar"><view class="ofill" style="width:{{progress.percent}}%"></view></view>
+    </block>
+    <block wx:else>
+      <text class="odot {{offline.tone}}"></text>
+      <text class="ostrip-t">{{offline.text}}</text>
+      <text class="ostrip-a mono" wx:if="{{offline.action}}">{{offline.action}} ›</text>
+    </block>
   </view>
 
   <!-- 书封区：留书名与一句定位，主角让给下面那张卡 -->
@@ -122,13 +131,13 @@
   <!-- 离线 -->
   <view class="label">离线</view>
 
-  <view class="dl" wx:if="{{downloading}}">
-    <view class="dl-h mono">
-      <text>下载中 · {{progress.text}}</text>
-      <text>{{progress.percent}}%</text>
+  <!-- 下载中：进度在顶部状态条就地显示（.dl 大进度块已删，避免双份进度） -->
+  <view class="rowcard" wx:if="{{downloading}}">
+    <view class="rc-l">
+      <view class="rc-h serif">下载全书</view>
+      <view class="rc-p">下载中 · {{progress.text}} · {{progress.size}}</view>
     </view>
-    <view class="bar"><view class="fill" style="width:{{progress.percent}}%"></view></view>
-    <view class="dl-p mono t3">{{progress.size}}</view>
+    <text class="mono t3">{{progress.percent}}%</text>
   </view>
 
   <view class="rowcard" bindtap="onDownload" wx:else>
