@@ -30,7 +30,7 @@
       </view>
     </view>
 
-    <view class="disclaimer">释义直接取自原书 README 的「读懂数字」一节，未做改写。</view>
+    <view class="disclaimer">术语释义取自原书，未做改写。</view>
   </view>
 </block>
 
@@ -76,7 +76,7 @@
       </view>
     </view>
 
-    <view class="label">怎么读这本书</view>
+    <view class="label">小程序阅读帮助</view>
     <view class="cardbox">
       <view class="howrow" wx:for="{{legend.howto}}" wx:key="head">
         <text class="hw-h serif">{{item.head}}</text>
@@ -84,6 +84,6 @@
       </view>
     </view>
 
-    <view class="disclaimer">以上释义均取自原书 README，未做改写。</view>
+    <view class="disclaimer">标注释义取自原书，未做改写。阅读帮助按小程序的使用方式整理。</view>
   </view>
 </block>

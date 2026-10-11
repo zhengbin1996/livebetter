@@ -6,7 +6,7 @@
 .tlist {
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 16rpx;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 .tlist .trow {
@@ -20,11 +20,11 @@
   justify-content: space-between;
   gap: 20rpx;
 }
-.tlist .tr-t { font-size: 28rpx; font-weight: 600; color: var(--green); }
-.tlist .tr-x { font-size: 20rpx; flex: none; }
+.tlist .tr-t { font-size: 28rpx; font-weight: 700; color: var(--accent); }
+.tlist .tr-x { font-size: 22rpx; flex: none; }
 .tlist .tr-b {
-  font-family: var(--serif);
-  font-size: 27rpx;
+  font-family: var(--sans);
+  font-size: 30rpx;
   line-height: 1.8;
   color: var(--ink2);
   margin-top: 16rpx;
@@ -34,14 +34,14 @@
 .cardbox {
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 16rpx;
+  border-radius: var(--radius);
   padding: 24rpx 26rpx;
   margin-bottom: 20rpx;
 }
 .cardbox .resnote { margin-top: 18rpx; font-size: 25rpx; color: var(--ink2); }
 
 .res { display: flex; gap: 16rpx; padding: 8rpx 0; }
-.res .res-n { flex: none; width: 150rpx; font-size: 27rpx; font-weight: 600; color: var(--ink); }
+.res .res-n { flex: none; width: 150rpx; font-size: 27rpx; font-weight: 700; color: var(--ink); }
 .res .res-d { flex: 1; font-size: 25rpx; color: var(--ink2); line-height: 1.6; }
 
 .evrow {
@@ -65,11 +65,11 @@
 .minir .mc3 { flex: 1; }
 .minihead .mh {
   font-family: var(--mono);
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: var(--ink3);
   letter-spacing: .04em;
 }
-.minir .mc1 { font-size: 25rpx; color: var(--ink); font-weight: 600; }
+.minir .mc1 { font-size: 25rpx; color: var(--ink); font-weight: 700; }
 .minir .mc2, .minir .mc3 { font-size: 24rpx; color: var(--ink2); line-height: 1.6; }
 
 .tagrow {
@@ -87,9 +87,9 @@
 .howrow:last-child { border-bottom: none; }
 .howrow .hw-h {
   display: block;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink);
   margin-bottom: 10rpx;
 }

@@ -2,7 +2,7 @@
 .cost {
   display: flex;
   border: 1rpx solid var(--line);
-  border-radius: 12rpx;
+  border-radius: var(--radius);
   overflow: hidden;
   background: var(--card);
 }
@@ -16,7 +16,7 @@
 .cost .k {
   display: block;
   font-family: var(--mono);
-  font-size: 19rpx;
+  font-size: 22rpx;
   color: var(--ink3);
   letter-spacing: .02em;
   margin-bottom: 6rpx;
@@ -24,7 +24,7 @@
 .cost .v {
   display: block;
   font-family: var(--mono);
-  font-size: 25rpx;
+  font-size: 24rpx;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -32,5 +32,8 @@
 
 /* sm：列表页用，压扁一点 */
 .cost--sm .c { padding: 8rpx 2rpx 10rpx; }
-.cost--sm .k { font-size: 17rpx; margin-bottom: 4rpx; }
+.cost--sm .k { font-size: 22rpx; margin-bottom: 4rpx; }
 .cost--sm .v { font-size: 22rpx; }
+
+.cost .c { min-width: 0; }
+.cost .v { overflow-wrap: anywhere; }

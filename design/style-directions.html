@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>人生指南 · 三种新风格</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eeeef1;color:#20242d;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:28px 24px 48px}main{max-width:1120px;margin:auto}header{margin-bottom:28px}header small{font-size:11px;letter-spacing:2px;color:#777d8c}h1{font-size:26px;letter-spacing:-1px;margin:10px 0}header p{font-size:14px;color:#686f7b;line-height:1.7;margin:0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}.option h2{font-size:17px;margin:0 0 7px}.option>p{font-size:12px;color:#737986;line-height:1.65;margin:0 0 16px;min-height:40px}.phone{position:relative;border-radius:28px;overflow:hidden;height:740px;border:1px solid #d7dae2;background:var(--bg);color:var(--ink);box-shadow:0 12px 30px #1a25330a}.screen{padding:0 20px}.sys{padding:14px 21px 10px;display:flex;justify-content:space-between;font-size:11px;font-weight:600}.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 0 20px;font-size:13px;font-weight:600}.capsule{font-size:10px;padding:4px 10px;border:1px solid var(--line);border-radius:30px;letter-spacing:3px}.offline{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:7px}.dot{width:6px;height:6px;background:var(--accent);border-radius:50%}.intro{padding:21px 0 18px}.eyebrow{font-size:10px;letter-spacing:1px;color:var(--accent);font-weight:600}.intro h3{font-size:29px;line-height:1.25;letter-spacing:-1.4px;margin:9px 0 10px;font-weight:700}.intro p{font-size:11px;line-height:1.7;color:var(--muted);margin:0}.search{display:flex;align-items:center;gap:9px;border:1px solid var(--line);padding:12px 14px;border-radius:var(--radius);font-size:11px;color:var(--muted);background:var(--surface);margin-bottom:18px}.search svg{width:14px;height:14px}.pick{background:var(--hero);border:1px solid var(--hero-line);padding:19px 18px;border-radius:var(--hero-radius);color:var(--hero-ink)}.pick-top{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.pick-top span:first-child{font-weight:700;letter-spacing:.3px}.badge{font-size:9px;padding:4px 7px;border-radius:4px;background:var(--badge-bg);color:var(--badge-ink)}.pick h4{font-size:21px;line-height:1.4;letter-spacing:-.5px;margin:18px 0 9px}.pick p{font-size:11px;line-height:1.8;color:var(--hero-muted);margin:0}.costs{display:flex;gap:6px;flex-wrap:wrap;margin-top:15px}.costs span{font-size:9px;padding:5px 8px;border-radius:5px;background:var(--cost-bg);color:var(--hero-ink)}.actions{display:flex;align-items:center;gap:12px;margin-top:18px}.actions button{font:inherit;font-size:11px;cursor:pointer;border:0;min-height:39px;padding:0 13px;border-radius:var(--button-radius);background:var(--button);color:var(--button-ink);flex:1;font-weight:600}.actions a{font-size:10px;color:var(--hero-ink);text-decoration:none;white-space:nowrap}.section-title{display:flex;justify-content:space-between;align-items:baseline;margin:23px 0 12px}.section-title strong{font-size:15px}.section-title span{font-size:10px;color:var(--muted)}.topics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.topic{padding:13px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);min-height:62px}.topic b{display:block;font-size:12px}.topic small{display:block;font-size:9px;color:var(--muted);margin-top:5px}.book{display:flex;align-items:center;justify-content:space-between;padding:15px 0;font-size:11px;color:var(--muted)}.tabbar{position:absolute;left:0;bottom:0;right:0;display:flex;justify-content:space-around;padding:12px 7px 19px;background:var(--surface);border-top:1px solid var(--line)}.tab{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:9px;color:var(--muted)}.tab svg{height:18px;width:18px}.tab.on{color:var(--accent);font-weight:600}svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.choose{width:100%;margin-top:14px;padding:12px;background:#fff;color:#333;border:1px solid #ced2db;border-radius:10px;font-family:inherit;cursor:pointer;font-weight:600}.choose:hover,.choose.selected{background:#20242d;color:#fff;border-color:#20242d}.note{margin-top:26px;font-size:12px;line-height:1.8;color:#737986}.blue{--bg:#f6f8fc;--surface:#fff;--ink:#172337;--muted:#6a778b;--accent:#245cdc;--line:#e1e7f1;--hero:#245cdc;--hero-line:#245cdc;--hero-ink:#fff;--hero-muted:#e0e9ff;--badge-bg:#ffffff24;--badge-ink:#fff;--cost-bg:#ffffff1a;--button:#fff;--button-ink:#245cdc;--radius:12px;--hero-radius:18px;--button-radius:9px}.warm{--bg:#fff9f2;--surface:#fffdf9;--ink:#382c27;--muted:#84776e;--accent:#a44229;--line:#eaded2;--hero:#f6e4d1;--hero-line:#eed4ba;--hero-ink:#462f25;--hero-muted:#76594a;--badge-bg:#fff8ee;--badge-ink:#8b492e;--cost-bg:#fff6e9;--button:#a44229;--button-ink:#fff;--radius:16px;--hero-radius:24px;--button-radius:20px}.warm .intro h3,.warm .pick h4{font-family:"Songti SC","STSong",serif}.warm .eyebrow{letter-spacing:2px}.bold{--bg:#faf9f5;--surface:#fff;--ink:#22221f;--muted:#72726a;--accent:#b3440c;--line:#d5d5cc;--hero:#ffda4b;--hero-line:#25251f;--hero-ink:#25251f;--hero-muted:#50451e;--badge-bg:#25251f;--badge-ink:#fff;--cost-bg:#fff4bd;--button:#25251f;--button-ink:#fff;--radius:2px;--hero-radius:2px;--button-radius:2px}.bold .intro h3{font-size:33px;font-weight:800;letter-spacing:-2px}.bold .pick{box-shadow:4px 4px 0 #25251f}.bold .search{border-color:#25251f}.bold .eyebrow{background:#fbe7d8;display:inline-block;padding:4px 6px}.bold .topic{border-width:0 0 1px;background:transparent}.bold .section-title{margin-top:26px}.bold .tabbar{border-top:1px solid #25251f}#selection{font-size:13px;color:#404956;margin-top:14px;min-height:21px}@media(max-width:850px){.grid{grid-template-columns:repeat(3,310px);overflow-x:auto;padding:0 0 20px;scroll-snap-type:x mandatory}.option{scroll-snap-align:start}body{padding:22px 16px}h1{font-size:23px}}@media(prefers-reduced-motion:no-preference){.choose{transition:background .15s,color .15s}}
+</style>
+</head>
+<body>
+<svg style="position:absolute;width:0;height:0" aria-hidden="true"><defs>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+<symbol id="today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 5 2 2 4-4"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="m3 7 2 2 3-4m-5 12 2 2 3-4m3-8h10m-10 10h10"/></symbol>
+<symbol id="person" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+</defs></svg>
+<main>
+<header><small>LIVE BETTER / 视觉方向探索</small><h1>同样的内容，换一种感觉。</h1><p>三张首页草图用于选择视觉方向。推荐 A：更轻、更易读，也更像日常使用的行动工具。</p></header>
+<div class="grid">
+<article class="option"><h2>A · 清爽蓝白 <small style="font-size:10px;color:#245cdc">推荐</small></h2><p>黑体排版、明亮留白、蓝色主角卡。信息清晰，适合高频使用。</p><div class="phone blue" data-variant="blue"></div><button class="choose" data-choice="A · 清爽蓝白">选择 A · 清爽蓝白</button></article>
+<article class="option"><h2>B · 暖色生活感</h2><p>奶油底色、陶土红、柔和圆角。亲切、放松，更适合慢慢阅读。</p><div class="phone warm" data-variant="warm"></div><button class="choose" data-choice="B · 暖色生活感">选择 B · 暖色生活感</button></article>
+<article class="option"><h2>C · 黑白橙色</h2><p>强字重、利落线条、醒目色块。更有个性，突出行动和重点。</p><div class="phone bold" data-variant="bold"></div><button class="choose" data-choice="C · 黑白橙色">选择 C · 黑白橙色</button></article>
+</div>
+<div id="selection" aria-live="polite">选中后，在聊天中告诉我你的选择或想调整的部分。</div>
+<p class="note">草图保留「今天做一条」「找问题」「按节读」等现有能力。内容取自当前项目；尚未修改小程序页面。后续按选定风格统一检索、清单、详情和暗色模式。</p>
+</main>
+<template id="home">
+<div class="sys"><span>9:41</span><span>••• ▰</span></div><div class="screen">
+<div class="nav"><span>高性价比人生指南</span><span class="capsule">••• ◉</span></div>
+<div class="offline"><span class="dot"></span>内容已离线保存 · 断网也能读</div>
+<div class="intro"><span class="eyebrow">从一件小事开始</span><h3>今天，<br>让生活好一点。</h3><p>676 条有依据的建议，帮你找到值得做的事。</p></div>
+<div class="search"><svg><use href="#search"/></svg>搜一个你关心的问题</div>
+<div class="pick"><div class="pick-top"><span>今天做一条</span><span class="badge">A 级证据 · 性价比极高</span></div><h4>系安全带，<br>前排后排都系</h4><p>坐前排系上安全带，出车祸时被撞死的概率大约降一半。坐轻型卡车前排的降六成。</p><div class="costs"><span>不花钱</span><span>不占时间</span><span>不用毅力</span></div><div class="actions"><a href="#selection">换一条</a><button type="button">＋ 加进今天的清单</button></div></div>
+<div class="section-title"><strong>从你的处境出发</strong><span>找问题</span></div>
+<div class="topics"><div class="topic"><b>身体与健康</b><small>7 个主题 →</small></div><div class="topic"><b>日常习惯</b><small>4 个主题 →</small></div><div class="topic"><b>钱与工作</b><small>7 个主题 →</small></div><div class="topic"><b>关系与家庭</b><small>10 个主题 →</small></div></div>
+<div class="book"><span>法律与风险 · 6 个主题</span><span>全部 34 节 →</span></div>
+</div><div class="tabbar"><div class="tab on"><svg><use href="#today"/></svg>今天</div><div class="tab"><svg><use href="#search"/></svg>检索</div><div class="tab"><svg><use href="#list"/></svg>清单</div><div class="tab"><svg><use href="#person"/></svg>关于</div></div>
+</template>
+<script>
+const homeTemplate = document.getElementById('home');
+document.querySelectorAll('.phone').forEach(phone => phone.append(homeTemplate.content.cloneNode(true)));
+document.querySelectorAll('.choose').forEach(button => button.addEventListener('click', () => {
+  document.querySelectorAll('.choose').forEach(choiceButton => choiceButton.classList.remove('selected'));
+  button.classList.add('selected');
+  document.getElementById('selection').textContent = '已选 ' + button.dataset.choice + '。请回到聊天确认，或告诉我你希望混搭的部分。';
+}));
+</script>
+</body>
+</html>

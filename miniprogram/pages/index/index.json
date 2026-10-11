@@ -1,7 +1,7 @@
 {
   "usingComponents": {
     "version-bar": "../../components/version-bar/index",
-    "cost-tag": "../../components/cost-tag/index"
+    "item-row": "../../components/item-row/index"
   },
   "navigationBarTitleText": "高性价比人生指南"
 }

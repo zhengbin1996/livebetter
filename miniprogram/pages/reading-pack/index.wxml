@@ -1,0 +1,36 @@
+<view class="page pack-page">
+  <view class="pack-hero">
+    <text class="pack-kicker">随时翻阅，也能打印</text>
+    <view class="pack-title">便携阅读包</view>
+    <text class="pack-description">把《高性价比人生指南》带在身边。全书 PDF 与主题索引，按需要找到原文。</text>
+    <view class="pack-price"><text class="pack-amount">¥1</text><text class="pack-price-note">计划售价 · 一次购买</text></view>
+    <text class="pack-date">内容日期 {{contentDate}}</text>
+  </view>
+
+  <view class="pack-test">
+    <view class="pack-card-title">先试试 PDF 阅读效果</view>
+    <text class="pack-description">免费样张 · 8 页 · 第 1 节前 3 条完整建议，无需购买。</text>
+    <button class="pack-button" bindtap="downloadSample" loading="{{sampleBusy}}" disabled="{{sampleBusy}}">{{sampleBusy ? '正在打开 PDF…' : '下载免费 PDF 样张 ↓'}}</button>
+    <text class="pack-date pack-test-note">打开后点右上角文件菜单，尝试保存或转发。保存方式以手机实际菜单为准。</text>
+  </view>
+
+  <view class="label">阅读包包含什么</view>
+  <view class="pack-card">
+    <view class="pack-card-title">01　全书阅读版 PDF</view>
+    <text class="pack-description">{{sections}} 节 · {{items}} 条建议 · {{docs}} 篇专题长文。手机阅读排版、可点击目录与书签，保留完整原文摘要、条件、争议标注和来源。</text>
+  </view>
+  <view class="pack-card">
+    <view class="pack-card-title">02　主题查阅索引 PDF</view>
+    <text class="pack-description">按生活处境整理章节与条目标题，完整正文见全书阅读版或免费小程序。</text>
+    <view class="pack-topics"><text wx:for="{{themeNames}}" wx:key="*this">{{item}}</text></view>
+  </view>
+
+  <view class="label">购买与保存说明</view>
+  <view class="pack-card">
+    <text class="pack-description">阅读包尚在筹备，暂未开放购买。计划提供当前日期版本，不连续扣费；正式开放时将说明重新下载、版本更新与退款规则。</text>
+    <text class="pack-description pack-description--spaced">PDF 下载后在微信中预览，再通过文件菜单保存或转发。手机保存位置和操作取决于系统与微信版本。</text>
+    <text class="pack-description pack-description--spaced">小程序内的阅读、搜索、收藏及离线阅读继续免费。收费针对文件排版与主题索引整理，原文可从原作免费获取。</text>
+  </view>
+  <button class="pack-button" disabled="{{true}}" bindtap="onUnavailablePurchase">购买暂未开放</button>
+  <text class="pack-source">原作：eternity4719 / HowToLiveBetter · CC BY 4.0。原文文字与数字未改写。本内容为生活建议，不构成医疗建议或法律意见。</text>
+</view>

@@ -1,22 +1,16 @@
 const app = getApp()
 const cfg = require('../../config')
-const content = require('../../utils/content')
-const fmt = require('../../utils/fmt')
+const readingHelp = require('../../utils/reading-help')
 
 Page({
   data: {
-    appName: cfg.APP_NAME,
     bookName: cfg.BOOK_NAME,
     repo: cfg.REPO_URL,
     licenseName: cfg.LICENSE_NAME,
     licenseUrl: cfg.LICENSE_URL,
+    attribution: '',
     disclaimer: cfg.DISCLAIMER,
-    info: null,
-    counts: {},
-    license: null,
-    cache: null,
-    cacheText: '',
-    busy: false,
+    readingHelp,
   },
 
   async onLoad() {
@@ -26,33 +20,34 @@ Page({
 
   onShow() {
     if (this.getTabBar) {
-      const tb = this.getTabBar()
-      if (tb) tb.setTab(3)
+      const tabBar = this.getTabBar()
+      if (tabBar) tabBar.setTab(4)
     }
     this.apply()
   },
 
   apply() {
-    const e = app.globalData.essentials || {}
-    const cache = content.localStats()
+    const essentials = app.globalData.essentials || {}
+    const metadata = essentials.meta || {}
+    const license = essentials.license || {}
     this.setData({
-      info: app.versionInfo(),
-      counts: e.counts || {},
-      license: e.license || null,
-      cache,
-      cacheText: `${cache.files} / ${cache.total} 节 · ${fmt.fmtBytes(cache.bytes)}`,
+      bookName: metadata.book || cfg.BOOK_NAME,
+      repo: metadata.repo || license.repo || cfg.REPO_URL,
+      licenseName: metadata.license || license.name || cfg.LICENSE_NAME,
+      licenseUrl: metadata.licenseUrl || license.url || cfg.LICENSE_URL,
+      attribution: license.attribution || `《${metadata.book || cfg.BOOK_NAME}》，原作者`,
     })
   },
 
   copyRepo() {
     wx.setClipboardData({
-      data: cfg.REPO_URL,
-      success() { wx.showToast({ title: '仓库链接已复制', icon: 'none' }) },
+      data: this.data.repo,
+      success() { wx.showToast({ title: '原作链接已复制', icon: 'none' }) },
     })
   },
   copyLicense() {
     wx.setClipboardData({
-      data: cfg.LICENSE_URL,
+      data: this.data.licenseUrl,
       success() { wx.showToast({ title: '许可证链接已复制', icon: 'none' }) },
     })
   },
@@ -65,17 +60,5 @@ Page({
   },
   goLegend() {
     wx.navigateTo({ url: '/subpackages/mine/pages/glossary/index?legend=1' })
-  },
-  goVerify() {
-    wx.navigateTo({ url: '/subpackages/read/pages/verify-read/index' })
-  },
-
-  async onSync() {
-    if (this.data.busy) return
-    this.setData({ busy: true })
-    const r = await app.refresh()
-    this.setData({ busy: false })
-    this.apply()
-    wx.showToast({ title: r.ok ? '已是最新' : (r.reason || '同步失败'), icon: 'none' })
   },
 })

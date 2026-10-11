@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>C 风格 · 简洁阅读与收藏演示</title>
+  <link rel="stylesheet" href="interaction-generated.css">
+  <link rel="stylesheet" href="interaction-c.css">
+</head>
+<body>
+  <header class="demo-toolbar">
+    <div><strong>C / 标题 · 摘要 · 原文</strong><p>可点击演示 · 使用原文与本机演示数据，不连接云端。</p></div>
+    <div class="demo-tools"><button id="theme">切换深色</button><button id="width">切换 320px</button><button id="reset">重置演示</button></div>
+  </header>
+  <div class="phone" data-theme="light">
+    <header class="phone-header" id="phone-header"></header>
+    <main id="screen" tabindex="-1"></main>
+    <nav id="navigation" aria-label="底部导航"></nav>
+    <div id="feedback" role="status"></div>
+    <div id="overlay"></div>
+  </div>
+  <script src="interaction-data.js"></script>
+  <script src="interaction-c.js"></script>
+</body>
+</html>

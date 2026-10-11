@@ -1,35 +1,39 @@
-/* ============================================================
-   设计系统
-   视觉方向：像一本被研究员逐条批注过的参考书 —— 结构本身就是信息。
-   颜色只承载语义，不做装饰：柏绿=证据A/主色，赭黄=证据B，石灰=证据C，
-   赭红只出现在「争议」「待核实」上。不存在内容里找不到出处的颜色。
-   字体分三段：宋体=内容，系统黑体=界面，等宽=一切数据与标签。
-   ============================================================ */
+@import "styles/icons.wxss";
 
 page {
-  --paper: #F4F5F2;
+  --paper: #FAF9F5;
   --card: #FFFFFF;
-  --line: #E3E4DF;
-  --line2: #EDEEE9;
-  --ink: #191D1C;
-  --ink2: #5C635F;
-  --ink3: #8C918D;
+  --line: #B9B9AF;
+  --line2: #DDDDD4;
+  --ink: #25251F;
+  --ink2: #55554D;
+  --ink3: #6C6C61;
+  --accent: #B3440C;
+  --accent-bg: #FBE7D8;
+  --highlight: #FFDA4B;
+  --on-highlight: #25251F;
+  --highlight-soft: #FFF3BD;
+  --hero-line: #25251F;
+  --action: #25251F;
+  --on-action: #FFFFFF;
   --green: #2F5D50;
   --green-bg: #EAF0EC;
-  --amber: #A9761B;
+  --on-green: #FFFFFF;
+  --amber: #845910;
   --amber-bg: #F7F0E2;
-  --gray: #8C918D;
-  --gray-bg: #EDEEEA;
+  --on-amber: #FFFFFF;
+  --gray: #606057;
+  --gray-bg: #EDEDE7;
   --red: #9C3B2E;
   --red-bg: #F6EAE7;
-  --tabbar-h: 108rpx;
-
-  --serif: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif CJK SC", serif;
+  --radius: 4rpx;
+  --tabbar-h: 120rpx;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   background: var(--paper);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--sans);
   font-size: 28rpx;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -37,33 +41,50 @@ page {
 
 @media (prefers-color-scheme: dark) {
   page {
-    --paper: #15181A;
-    --card: #1D2124;
-    --line: #2C3135;
-    --line2: #23282B;
-    --ink: #E9EBE9;
-    --ink2: #A9B0AB;
-    --ink3: #7B827D;
-    --green: #74AE98;
-    --green-bg: #1E2B27;
-    --amber: #D6A855;
-    --amber-bg: #2C2517;
-    --gray: #8C918D;
-    --gray-bg: #262A29;
-    --red: #D4796A;
-    --red-bg: #2E211E;
+    --paper: #191A17;
+    --card: #24251F;
+    --line: #77786D;
+    --line2: #44453B;
+    --ink: #F7F6EF;
+    --ink2: #C7C7BA;
+    --ink3: #ADAEA0;
+    --accent: #FFB078;
+    --accent-bg: #38291D;
+    --highlight: #D8B849;
+    --on-highlight: #25251F;
+    --highlight-soft: #E8CC73;
+    --hero-line: #D8B849;
+    --action: #F7F6EF;
+    --on-action: #25251F;
+    --green: #8FC4A8;
+    --green-bg: #24382D;
+    --on-green: #15271D;
+    --amber: #E9BB68;
+    --amber-bg: #372E1B;
+    --on-amber: #241E10;
+    --gray: #C1C1B3;
+    --gray-bg: #36372F;
+    --red: #F4A28E;
+    --red-bg: #35251F;
   }
 }
 
 view, text, scroll-view, navigator { box-sizing: border-box; }
 
+.reading-heading { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
+.reading-heading > view { flex: 1; min-width: 0; }
+.reader-share { flex: none; margin: 0; padding: 16rpx 20rpx; min-height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 24rpx; line-height: 1.5; color: var(--ink2); border: 1rpx solid var(--line); border-radius: var(--radius); background: var(--card); }
+.reader-share::after { border: 0; }
+.share-cover-canvas { position: fixed; left: -1100px; top: 0; width: 1000px; height: 800px; pointer-events: none; }
+.share-mode-note { padding: 24rpx; margin: 24rpx 0; border-left: 4rpx solid var(--accent); background: var(--accent-bg); font-size: 26rpx; line-height: 1.7; color: var(--ink2); }
+
 /* ---------- 排版原子 ---------- */
-.serif { font-family: var(--serif); }
+.serif { font-family: var(--sans); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .t1 { color: var(--ink); }
 .t2 { color: var(--ink2); }
 .t3 { color: var(--ink3); }
-.tg { color: var(--green); }
+.tg { color: var(--accent); }
 .ta { color: var(--amber); }
 .tr { color: var(--red); }
 .f11 { font-size: 22rpx; }
@@ -78,13 +99,12 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 }
 .page--flat { padding-bottom: 40rpx; }
 
-/* 版式小标题：等宽大写，像标本标签上的注 */
 .label {
-  font-family: var(--mono);
-  font-size: 21rpx;
-  color: var(--ink3);
-  letter-spacing: .06em;
-  margin: 44rpx 0 18rpx;
+  font-family: var(--sans);
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 40rpx 0 20rpx;
 }
 .label:first-child { margin-top: 28rpx; }
 
@@ -92,7 +112,7 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 .card {
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 20rpx;
+  border-radius: var(--radius);
 }
 
 /* ---------- 版本条 ---------- */
@@ -102,13 +122,13 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
   justify-content: space-between;
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 20rpx;
+  border-radius: var(--radius);
   padding: 22rpx 26rpx;
   margin-top: 24rpx;
 }
 .vbar .l { font-family: var(--mono); font-size: 24rpx; color: var(--ink); }
 .vbar .r {
-  font-family: var(--mono); font-size: 21rpx; color: var(--ink3);
+  font-family: var(--mono); font-size: 22rpx; color: var(--ink3);
   text-align: right; line-height: 1.5;
 }
 .vbar .dot {
@@ -120,10 +140,10 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 
 /* ---------- 检索入口 ---------- */
 .searchbar {
-  height: 76rpx;
+  height: 96rpx;
   background: var(--card);
-  border: 1rpx solid var(--line);
-  border-radius: 38rpx;
+  border: 2rpx solid var(--ink);
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   padding: 0 28rpx;
@@ -156,7 +176,7 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 }
 .sectrow .b { flex: 1; min-width: 0; }
 .sectrow .b .stt {
-  font-family: var(--serif); font-size: 32rpx; font-weight: 600;
+  font-family: var(--sans); font-size: 34rpx; font-weight: 700;
   line-height: 1.4; color: var(--ink);
 }
 .sectrow .b .ssum {
@@ -171,7 +191,7 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 
 /* ---------- 条目标题 ---------- */
 .dtitle {
-  font-family: var(--serif); font-size: 44rpx; font-weight: 600;
+  font-family: var(--sans); font-size: 44rpx; font-weight: 800;
   line-height: 1.4; margin: 12rpx 0 20rpx;
 }
 .dbread {
@@ -179,30 +199,32 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
   margin-bottom: 30rpx;
 }
 
-/* 「说人话」——全站唯一一处左侧强调边，视觉最高位 */
 .dplain {
-  background: var(--card);
-  border: 1rpx solid var(--line);
-  border-left: 6rpx solid var(--green);
-  border-radius: 8rpx 20rpx 20rpx 8rpx;
+  background: var(--highlight);
+  border: 2rpx solid var(--hero-line);
+  border-radius: var(--radius);
   padding: 30rpx 32rpx;
   margin-bottom: 40rpx;
+  box-shadow: 6rpx 6rpx 0 var(--hero-line);
+  --ink: var(--on-highlight);
+  --ink2: var(--on-highlight);
+  --ink3: var(--on-highlight);
 }
 .dplain .k {
-  font-family: var(--mono); font-size: 20rpx; color: var(--green);
+  font-family: var(--mono); font-size: 22rpx; color: var(--on-highlight);
   letter-spacing: .08em; display: block; margin-bottom: 16rpx;
 }
 .dplain .v {
-  font-family: var(--serif); font-size: 32rpx; line-height: 1.85; color: var(--ink);
+  font-family: var(--sans); font-size: 32rpx; line-height: 1.85; color: var(--ink);
 }
 
 /* 字段块 */
 .field { margin-bottom: 38rpx; }
 .field .k {
-  font-family: var(--mono); font-size: 21rpx; color: var(--ink3);
+  font-family: var(--mono); font-size: 26rpx; color: var(--ink);
   letter-spacing: .06em; display: block; margin-bottom: 12rpx;
 }
-.field .v { font-size: 28rpx; line-height: 1.8; color: var(--ink2); }
+.field .v { font-size: 30rpx; line-height: 1.8; color: var(--ink2); }
 .field .v .rich { color: var(--ink); }
 .field--src .v {
   font-family: var(--mono); font-size: 23rpx; line-height: 1.7;
@@ -212,41 +234,47 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 /* ---------- 按钮 ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 12rpx;
-  height: 80rpx; padding: 0 36rpx; border-radius: 12rpx;
+  min-height: 88rpx; padding: 16rpx 28rpx; border-radius: var(--radius);
   border: 1rpx solid var(--line); background: var(--card);
-  font-family: var(--mono); font-size: 24rpx; color: var(--ink2);
+  font-family: var(--sans); font-weight: 700; font-size: 24rpx; color: var(--ink2);
 }
-.btn--primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn--primary { background: var(--action); border-color: var(--action); color: var(--on-action); }
 .btn--ghost { background: transparent; }
 .btn--block { display: flex; width: 100%; }
-.btn--on { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.btn--on { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 
 /* ---------- 分段控件 ---------- */
 .seg {
-  display: flex; border: 1rpx solid var(--line); border-radius: 12rpx;
+  display: flex; border: 1rpx solid var(--line); border-radius: var(--radius);
   overflow: hidden; background: var(--card); margin: 24rpx 0;
 }
 .seg .s {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
   flex: 1; text-align: center; padding: 20rpx 0;
   font-family: var(--mono); font-size: 24rpx; color: var(--ink3);
 }
-.seg .s.on { background: var(--green-bg); color: var(--green); }
+.seg .s.on { background: var(--action); color: var(--on-action); font-weight: 700; }
 
 /* ---------- 标签（筛选片） ---------- */
 .chip {
-  display: inline-block; padding: 12rpx 26rpx; margin: 0 16rpx 16rpx 0;
-  border: 1rpx solid var(--line); border-radius: 999rpx;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 88rpx; min-width: 88rpx;
+  padding: 12rpx 26rpx; margin: 0 16rpx 16rpx 0;
+  border: 1rpx solid var(--line); border-radius: var(--radius);
   font-family: var(--mono); font-size: 22rpx; color: var(--ink2);
   background: var(--card);
 }
-.chip.on { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+.chip.on { background: var(--action); border-color: var(--action); color: var(--on-action); }
 
 /* ---------- 空态 ---------- */
 .empty {
   padding: 120rpx 0; text-align: center;
 }
 .empty .h {
-  font-family: var(--serif); font-size: 30rpx; color: var(--ink2);
+  font-family: var(--sans); font-size: 30rpx; color: var(--ink2);
   margin-bottom: 14rpx;
 }
 .empty .p { font-size: 24rpx; color: var(--ink3); line-height: 1.7; }
@@ -271,7 +299,7 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
      2) 引用链接要 dashed 下划线，得压过组件自带的 ._a 颜色。
    选择器都写成 .mp-body xxx（两个类）以保证压过组件内部同名规则。
    ============================================================ */
-.mp-body { font-family: var(--serif); }
+.mp-body { font-family: var(--sans); }
 .mp-body ._p { display: block; margin: 0 0 14rpx; }
 .mp-body ._p:last-child { margin-bottom: 0; }
 
@@ -293,13 +321,13 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
   line-height: 1.6;
   color: var(--ink2);
 }
-.mp-body ._th { font-weight: 600; background: var(--gray-bg); color: var(--ink); text-align: left; }
+.mp-body ._th { font-weight: 700; background: var(--gray-bg); color: var(--ink); text-align: left; }
 
 .mp-body ._ul, .mp-body ._ol { display: block; padding-left: 34rpx; margin: 14rpx 0; }
 .mp-body ._li { display: list-item; margin: 8rpx 0; }
 
 .mp-body ._h1, .mp-body ._h2, .mp-body ._h3, .mp-body ._h4 {
-  display: block; font-family: var(--serif); font-weight: 600;
+  display: block; font-family: var(--sans); font-weight: 700;
   color: var(--ink); margin: 34rpx 0 14rpx; line-height: 1.45;
 }
 .mp-body ._h1 { font-size: 40rpx; }
@@ -318,8 +346,8 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
 
 /* 交叉引用：带虚线的指路，点一下跳到那一条 */
 .mp-body .ref {
-  color: var(--green);
-  border-bottom: 1rpx dashed var(--green);
+  color: var(--accent);
+  border-bottom: 1rpx dashed var(--accent);
   padding-bottom: 1rpx;
 }
 /* 术语：点一下弹释义 */
@@ -340,6 +368,10 @@ view, text, scroll-view, navigator { box-sizing: border-box; }
   font-size: 24rpx;
   background: var(--gray-bg);
   padding: 2rpx 8rpx;
-  border-radius: 6rpx;
+  border-radius: var(--radius);
 }
-.mp-body b { font-weight: 600; }
+.mp-body b { font-weight: 700; }
+
+.page-heading { font-size: 44rpx; font-weight: 800; line-height: 1.4; padding: 32rpx 0 8rpx; }
+.dplain { --accent: var(--on-highlight); }
+.btn:active, .chip:active, .seg .s:active { opacity: .72; }

@@ -2,6 +2,7 @@ const config = require('./config')
 const cloud = require('./utils/cloud')
 const content = require('./utils/content')
 const store = require('./utils/store')
+const share = require('./utils/share')
 
 App({
   globalData: {
@@ -47,7 +48,7 @@ App({
     }
 
     // 2) 云开发
-    if (!wx.cloud) {
+    if (share.singlePage() || !wx.cloud) {
       g.cloudReady = false
       g.syncState = 'offline'
       return g

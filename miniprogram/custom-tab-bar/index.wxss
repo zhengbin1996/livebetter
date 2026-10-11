@@ -1,71 +1,59 @@
+@import "../styles/icons.wxss";
+
 .tabbar {
-  /* ⚠️ 自定义 tabBar 的节点不挂在 page 下面，**继承不到** app.wxss 里
-     `page { --ink3: ... }` 定义的 CSS 变量 —— var() 静默落空，文字掉回默认黑色。
-     浅色模式下是「白底黑字」不易察觉；暗色模式下背景被 @media 转暗，
-     就成了「暗底黑字」完全看不清（真机实测）。
-     所以这里用到的变量必须在组件内自己定义，取值与 app.wxss 保持同步。 */
-  --line: #E3E4DF;
-  --ink3: #8C918D;
-  --green: #2F5D50;
-  --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --line: #B9B9AF;
+  --ink3: #6C6C61;
+  --accent: #B3440C;
+  --card: #FFFFFF;
+  --highlight: #FFDA4B;
+  --on-highlight: #25251F;
+  --radius: 4rpx;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: calc(108rpx + env(safe-area-inset-bottom));
+  height: calc(120rpx + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(251, 251, 249, .94);
-  backdrop-filter: blur(12rpx);
-  border-top: 1rpx solid var(--line);
+  background: var(--card);
+  border-top: 2rpx solid var(--line);
   display: flex;
   z-index: 800;
 }
 @media (prefers-color-scheme: dark) {
   .tabbar {
-    --line: #2C3135;
-    --ink3: #8F9791;
-    --green: #7FBFA6;
-    background: rgba(24, 27, 29, .94);
+    --line: #77786D;
+    --ink3: #ADAEA0;
+    --accent: #FFB078;
+    --card: #24251F;
+    --highlight: #D8B849;
+    --on-highlight: #25251F;
   }
 }
-
 .tabbar .tb {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  gap: 6rpx;
   position: relative;
-}
-
-/* 选中标识：一条 4rpx 短横，不是图标 */
-.tabbar .mark {
-  width: 32rpx;
-  height: 4rpx;
-  border-radius: 2rpx;
-  background: transparent;
-}
-.tabbar .tb.on .mark { background: var(--green); }
-
-.tabbar .lb {
-  font-family: var(--mono);
-  font-size: 22rpx;
-  letter-spacing: .04em;
   color: var(--ink3);
 }
-.tabbar .tb.on .lb { color: var(--green); }
-
+.tabbar .tb.on { color: var(--accent); }
+.tabbar .tb:active { opacity: .72; }
+.tabbar .tab-icon { width: 38rpx; height: 38rpx; }
+.tabbar .lb { font-family: var(--sans); font-size: 22rpx; font-weight: 600; }
 .tabbar .badge {
   position: absolute;
-  top: 18rpx;
-  margin-left: 44rpx;
-  min-width: 26rpx;
-  height: 26rpx;
+  top: 12rpx;
+  margin-left: 48rpx;
+  min-width: 30rpx;
+  height: 30rpx;
   padding: 0 8rpx;
-  border-radius: 13rpx;
-  background: var(--green);
-  color: #fff;
-  font-family: var(--mono);
-  font-size: 18rpx;
-  line-height: 26rpx;
+  border: 1rpx solid var(--on-highlight);
+  border-radius: var(--radius);
+  background: var(--highlight);
+  color: var(--on-highlight);
+  font-size: 22rpx;
+  line-height: 28rpx;
   text-align: center;
 }

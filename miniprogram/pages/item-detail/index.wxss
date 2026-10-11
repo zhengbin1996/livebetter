@@ -4,11 +4,11 @@
 /* 跨版本兜底提示：按内置索引落到同一条位置时，如实说明一句 */
 .stalenote {
   font-family: var(--mono);
-  font-size: 21rpx;
+  font-size: 22rpx;
   line-height: 1.6;
   color: var(--amber);
   background: var(--amber-bg);
-  border-radius: 10rpx;
+  border-radius: var(--radius);
   padding: 14rpx 20rpx;
   margin-bottom: 24rpx;
 }
@@ -16,9 +16,9 @@
 .flags { display: flex; gap: 12rpx; margin-bottom: 24rpx; }
 .flags .flag {
   font-family: var(--mono);
-  font-size: 20rpx;
+  font-size: 22rpx;
   padding: 4rpx 14rpx;
-  border-radius: 6rpx;
+  border-radius: var(--radius);
 }
 .flags .flag--r { color: var(--red); background: var(--red-bg); }
 .flags .flag--a { color: var(--amber); background: var(--amber-bg); }
@@ -36,36 +36,36 @@
   gap: 16rpx;
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 14rpx;
+  border-radius: var(--radius);
   padding: 20rpx 22rpx;
 }
 .marks .mk .mk-b { flex: 1; min-width: 0; }
 .marks .mk .mk-k {
   display: block;
-  font-size: 19rpx;
+  font-size: 22rpx;
   color: var(--ink3);
   letter-spacing: .04em;
 }
 .marks .mk .mk-v {
   display: block;
-  font-size: 21rpx;
+  font-size: 22rpx;
   color: var(--ink2);
   line-height: 1.5;
   margin-top: 4rpx;
 }
 
 .field .k .copy {
-  color: var(--green);
+  color: var(--accent);
   margin-left: 12rpx;
 }
 .field + .field { margin-top: 0; }
-.field .v { font-family: var(--serif); }
+.field .v { font-family: var(--sans); }
 
 /* 交叉引用列表 */
 .reflist {
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 16rpx;
+  border-radius: var(--radius);
   overflow: hidden;
   margin-bottom: 20rpx;
 }
@@ -77,7 +77,7 @@
   border-bottom: 1rpx solid var(--line2);
 }
 .reflist .refrow:last-child { border-bottom: none; }
-.reflist .rr { flex: none; font-size: 21rpx; color: var(--green); }
+.reflist .rr { flex: none; font-size: 22rpx; color: var(--accent); }
 .reflist .rt {
   flex: 1;
   font-size: 26rpx;
@@ -95,43 +95,39 @@
   bottom: 0;
   display: flex;
   gap: 14rpx;
-  background: rgba(251, 251, 249, .96);
-  backdrop-filter: blur(12rpx);
+  background: var(--card);
   border-top: 1rpx solid var(--line);
   padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
   z-index: 700;
 }
-@media (prefers-color-scheme: dark) {
-  .actbar { background: rgba(24, 27, 29, .96); }
-}
+
 .actbar .act {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12rpx;
-  height: 84rpx;
+  height: 96rpx;
 }
 /* 每个屏幕只允许一个主按钮 */
 .actbar .act--primary {
-  background: var(--green-bg);
-  border-radius: 12rpx;
-}
-.actbar .act--primary .ai,
-.actbar .act--primary .at { color: var(--green); }
-.actbar .act {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  height: 84rpx;
+  background: var(--action);
+  border-radius: var(--radius);
 }
 .actbar .ai { font-size: 32rpx; color: var(--ink3); }
-.actbar .ai.on { color: var(--green); }
+.actbar .ai.on { color: var(--accent); }
 .actbar .at {
   font-family: var(--mono);
   font-size: 24rpx;
   color: var(--ink3);
 }
-.actbar .at.on { color: var(--green); }
+.actbar .at.on { color: var(--accent); }
+
+.actbar .act--primary .ai, .actbar .act--primary .at { color: var(--on-action); }
+.actbar .act:active { opacity: .72; }
+.actbar .at { overflow-wrap: anywhere; }
+.marks { flex-wrap: wrap; }
+.marks .mk { min-width: 260rpx; }
+.reflist .refrow { flex-wrap: wrap; }
+.original-toggle { min-height: 96rpx; display: flex; align-items: center; justify-content: center; border: 1rpx solid var(--line); background: var(--card); font-size: 26rpx; color: var(--accent); font-weight: 700; margin: 24rpx 0 40rpx; border-radius: var(--radius); }
+.actbar .act { flex: 1; height: 88rpx; }

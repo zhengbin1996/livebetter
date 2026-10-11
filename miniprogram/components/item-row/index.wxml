@@ -1,26 +1,17 @@
-<!-- 条目卡片。列表页（分节目录、检索、收藏）共用。
-     左上是条号，标题用宋体，说人话做两行摘要，底部是成本签与两个正交标注。 -->
-<view class="itemrow" bindtap="onTap">
-  <text class="num">{{num}}</text>
-  <view class="bd">
-    <view class="ttl-line">
-      <text class="h" wx:if="{{showSec}}">{{secTag}}·</text>
-      <text class="h">{{item.title}}</text>
-      <text class="star" wx:if="{{fav}}">★</text>
+<view class="advice-card {{highlight ? 'advice-card--highlight' : ''}}">
+  <view class="advice-main" bindtap="onTap" aria-role="button" aria-label="{{normalized.title || '查看建议'}}">
+    <view class="advice-meta">
+      <text wx:if="{{showSec && normalized.sec}}">{{normalized.sec}} 节 · </text>
+      <text wx:if="{{normalized.num}}">第 {{normalized.num}} 条</text>
     </view>
-
-    <view class="tagline" wx:if="{{disputed}}">
-      <text class="flag">争议</text>
+    <view class="advice-title">{{normalized.title || '正文未下载'}}</view>
+    <view class="advice-flags" wx:if="{{normalized.dispute || normalized.todo}}">
+      <text wx:if="{{normalized.dispute}}">争议</text><text wx:if="{{normalized.todo}}">待核实</text>
     </view>
-
-    <view class="plain" wx:if="{{item.preview}}">{{item.preview}}</view>
-
-    <cost-tag tag="{{item.tag}}" label-map="{{labelMap}}" size="sm" />
-
-    <view class="meta">
-      <ev-badge level="{{item.evidenceLevel}}" light sm />
-      <tier-meter level="{{item.ratio}}" sm />
-      <text class="mt">性价比 {{item.ratio}}</text>
-    </view>
+    <view class="advice-summary" wx:if="{{normalized.summary}}">{{normalized.summary}}</view>
   </view>
+  <view class="advice-unavailable" wx:if="{{normalized.unavailable}}">
+    <text>正文未下载</text><view bindtap="onRetry" aria-role="button">重试</view>
+  </view>
+  <view class="advice-favorite" bindtap="onFavorite" aria-role="button" aria-label="{{saved ? '取消收藏' : '收藏'}}">{{saved ? '已收藏 · 取消' : '收藏'}}</view>
 </view>

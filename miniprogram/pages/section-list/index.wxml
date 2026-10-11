@@ -1,10 +1,15 @@
 <view class="page page--flat">
+  <view class="share-mode-note" wx:if="{{singlePage}}">朋友圈预览 · 点击下方“前往小程序”，阅读章节与专题。</view>
+  <view class="seg">
+    <view class="s {{tab === 'sections' ? 'on' : ''}}" data-tab="sections" bindtap="switchTab" aria-role="button">章节</view>
+    <view class="s {{tab === 'docs' ? 'on' : ''}}" data-tab="docs" bindtap="switchTab" aria-role="button">专题长文</view>
+  </view>
   <view class="searchbar">
     <view class="ic"></view>
     <input
       class="sinput"
       value="{{q}}"
-      placeholder="在节名和摘要里找"
+      placeholder="{{tab === 'sections' ? '搜章节标题或导读' : '搜专题标题或小标题'}}"
       placeholder-class="sph"
       confirm-type="search"
       bindinput="onInput"
@@ -12,20 +17,17 @@
     <text class="clr mono" wx:if="{{q}}" bindtap="clearQ">清</text>
   </view>
 
-  <view class="label">{{sections.length}} 节 · 每节按性价比从高到低</view>
+  <block wx:if="{{tab === 'sections'}}">
+  <view class="label">{{sections.length}} 节</view>
 
   <view class="sectrow" wx:for="{{sections}}" wx:key="sec" data-sec="{{item.sec}}" bindtap="onTap">
     <text class="n">{{item.sec}}</text>
     <view class="b">
       <view class="stt">{{item.title}}</view>
       <view class="ssum" wx:if="{{item.summary}}">{{item.summary}}</view>
-      <view class="mtags" wx:if="{{item.groups.length}}">
-        <text class="gtag" wx:for="{{item.groups}}" wx:for-item="g" wx:key="*this">{{g}}</text>
-      </view>
     </view>
     <view class="m">
       <text class="l1">{{item.items}} 条</text>
-      <text class="l2">{{item.tierText}} · {{item.evText}}</text>
     </view>
   </view>
 
@@ -33,4 +35,12 @@
     <view class="h serif">没有匹配的节</view>
     <view class="p">换个词试试，或者到检索页搜正文</view>
   </view>
+  </block>
+  <block wx:else>
+    <view class="label">{{docs.length}} 篇 · 按主题展开阅读</view>
+    <view class="sectrow" wx:for="{{docs}}" wx:key="sid" data-sid="{{item.sid}}" bindtap="onDoc">
+      <view class="b"><view class="stt">{{item.title}}</view></view><text class="t3">›</text>
+    </view>
+    <view class="empty" wx:if="{{!docs.length}}"><view class="h">没有匹配的专题长文</view><view class="p">换个词试试。</view></view>
+  </block>
 </view>

@@ -1,0 +1,2 @@
+.collection-count { font-size: 24rpx; color: var(--ink3); margin: 12rpx 0 28rpx; }
+.empty .btn { margin-top: 36rpx; }

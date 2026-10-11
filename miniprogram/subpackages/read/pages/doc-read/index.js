@@ -1,6 +1,9 @@
 const app = getApp()
 const content = require('../../../../utils/content')
 const refs = require('../../../../utils/refs')
+const reader = require('../../../../utils/reader-content')
+const share = require('../../../../utils/share')
+const shareCover = require('../../../../utils/share-cover')
 
 Page({
   data: {
@@ -11,18 +14,22 @@ Page({
     tocOpen: false,
     glossaryTerm: '',
     glossShow: false,
-    big: false,
   },
 
   async onLoad(query) {
+    this.setData({ singlePage: share.singlePage() })
+    share.enable(false)
     await app.ready
     this.query = query || {}
     await this.load()
   },
+  onReady() { if (this.shareCoverInfo) shareCover.prepare(this, this.shareCoverInfo) },
+  onShareAppMessage() { return !this.data.loading && !this.data.offline ? shareCover.attach(this, share.doc(this.data.doc)) : share.home() },
+  onShareTimeline() { return share.timeline(this.onShareAppMessage()) },
 
   async load() {
     const sid = this.query.sid
-    if (!sid) {
+    if (!sid || !reader.readableDocs(app.globalData.essentials).some((entry) => entry.sid === sid)) {
       this.setData({ loading: false, offline: true })
       return
     }
@@ -31,15 +38,16 @@ Page({
       this.setData({
         loading: false,
         offline: false,
-        doc,
+        doc: Object.assign({}, doc, { body: refs.readableHtml(doc.body) }),
         // 只展示前两级标题，再深就成噪音了
         toc: (doc.toc || []).filter((t) => t.level <= 2),
-        // 超长文档（如「引用对照」268 KB）提示折叠大纲
-        big: (doc.chars || 0) > 60000,
       })
       wx.setNavigationBarTitle({ title: doc.title.slice(0, 20) })
+      share.enable(true)
+      if (!this.data.singlePage) shareCover.prepare(this, shareCover.doc(doc))
     } catch (e) {
       this.setData({ loading: false, offline: true })
+      share.enable(false)
     }
   },
 

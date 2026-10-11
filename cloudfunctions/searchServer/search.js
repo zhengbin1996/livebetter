@@ -165,6 +165,7 @@ function runSearch(corpus, q, filters) {
   const docHits = []
   if (noItemFilter(filters)) {
     for (const d of corpus.docs || []) {
+      if (d.k !== 'doc') continue
       let ok = true
       let sc = 0
       for (const term of terms) {

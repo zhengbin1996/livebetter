@@ -1,46 +1,59 @@
+<view class="share-mode-note" wx:if="{{singlePage}}">朋友圈预览 · 点击下方“前往小程序”，阅读全文。</view>
 <view class="loading" wx:if="{{loading}}">正在取这一节…</view>
 
 <view class="empty" wx:elif="{{offline}}">
   <view class="h serif">这一节还没存到本机</view>
-  <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
-  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+  <view class="p">{{singlePage ? '请点击微信底部“前往小程序”，继续读取原文。' : '联网后重试，也可到「关于 → 离线与更新」下载全书。'}}</view>
+  <view class="btn btn--primary" wx:if="{{!singlePage}}" style="margin-top:36rpx" bindtap="onRetry">重试</view>
 </view>
 
-<view class="page page--flat" wx:else>
+<view class="page" wx:else>
   <view class="shead">
-    <view class="sn mono">{{sec}}</view>
+    <view class="reading-heading"><view class="sn mono">第 {{sec}} 节</view><button class="reader-share" wx:if="{{!singlePage}}" open-type="share">分享给好友 ↗</button></view>
     <view class="st serif">{{secTitle}}</view>
-    <view class="sc mono">{{items.length}} 条 · 按性价比从高到低</view>
+    <view class="section-meta">
+      <view class="sc mono">{{items.length}} 条 · 按性价比排序</view>
+      <button class="guide-toggle" wx:if="{{introLen || groups.length}}" bindtap="toggleGuide" aria-expanded="{{guideOpen}}">
+        <view class="guide-label"><text class="guide-title">{{guideOpen ? '收起本节导读' : '展开本节导读'}}</text><text class="guide-hint">本节讲什么 · 主题导航</text></view>
+        <text class="guide-arrow" aria-hidden="true">{{guideOpen ? '↑' : '↓'}}</text>
+      </button>
+    </view>
   </view>
 
-  <!-- 节首导读：里头的交叉引用同样可点 -->
-  <view class="intro" wx:if="{{introLen}}">
+  <view class="section-guide" wx:if="{{guideOpen}}">
+  <view class="guide-overview" wx:if="{{overview}}">
+    <view class="guide-section-title">本节说明</view>
     <mp-html
-      class="mp-body"
-      content="{{intro}}"
+      class="intro mp-body"
+      content="{{overview}}"
       copy-link="{{false}}"
       bindlinktap="onLinkTap"
     />
   </view>
 
-  <!-- 分组导览：点一下滚到该组首条 -->
   <view class="gnav" wx:if="{{groups.length}}">
+    <view class="guide-section-title">主题导航</view>
+    <view class="guide-nav-hint">点击条目，跳到对应建议</view>
     <view class="gblock" wx:for="{{groups}}" wx:for-item="g" wx:key="label">
-      <text class="gl">{{g.label}}</text>
+      <view class="gl"><text class="group-order mono">{{g.order}}</text><text>{{g.label}}</text></view>
       <view class="gitems">
-        <text
+        <button
           class="gi"
           wx:for="{{g.items}}"
           wx:for-item="gi"
           wx:key="num"
           data-num="{{gi.num}}"
           bindtap="goGroup"
-        >{{gi.num}} {{gi.label}}</text>
+        ><text class="group-num mono">{{gi.num}}</text><text class="group-item-label">{{gi.label}}</text><text class="group-chevron" aria-hidden="true">›</text></button>
       </view>
     </view>
   </view>
 
-  <!-- 条目清单 -->
+  <view class="guide-source" wx:if="{{introLen}}">
+    <button class="guide-source-toggle" bindtap="toggleGuideSource" aria-expanded="{{guideSourceOpen}}">{{guideSourceOpen ? '收起完整原文导读 ↑' : '查看完整原文导读 ↓'}}</button>
+    <mp-html wx:if="{{guideSourceOpen}}" class="intro mp-body" content="{{intro}}" copy-link="{{false}}" bindlinktap="onLinkTap" />
+  </view>
+  </view>
   <item-row
     wx:for="{{items}}"
     wx:key="sid"
@@ -49,9 +62,11 @@
     label-map="{{labelMap}}"
     fav="{{item.fav}}"
     bindtapitem="goItem"
+    bindretry="onRetry"
   />
 
   <view class="disclaimer">本内容为生活建议，不构成医疗建议或法律意见；就医请遵医嘱。</view>
 </view>
 
 <gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />
+<canvas wx:if="{{!singlePage}}" type="2d" id="share-cover-canvas" class="share-cover-canvas" aria-hidden="true" />

@@ -1,51 +1,13 @@
 <view class="page">
-  <!-- 离线状态条：常驻首屏顶部。这是产品最强的差异点，不该藏在第 6 屏。
-       点击后反馈必须发生在条自身（就地反馈），进度不能只渲染在页面底部。 -->
-  <view class="ostrip" bindtap="onOfflineTap">
-    <block wx:if="{{downloading}}">
-      <text class="odot a"></text>
-      <text class="ostrip-t">下载中 · {{progress.text}}</text>
-      <text class="ostrip-a mono">{{progress.percent}}%</text>
-      <view class="obar"><view class="ofill" style="width:{{progress.percent}}%"></view></view>
-    </block>
-    <block wx:else>
-      <text class="odot {{offline.tone}}"></text>
-      <text class="ostrip-t">{{offline.text}}</text>
-      <text class="ostrip-a mono" wx:if="{{offline.action}}">{{offline.action}} ›</text>
-    </block>
-  </view>
-
-  <!-- 书封区：留书名与一句定位，主角让给下面那张卡 -->
-  <view class="masthead">
-    <view class="bk">{{bookName}}</view>
-    <view class="tag">{{tagline}}</view>
-    <view class="stats mono">{{statLine}}</view>
-  </view>
-
-  <!-- 今天做一条：首屏第一眼就要回答「我今天该做哪一条」 -->
-  <view class="pick" wx:if="{{pick}}">
-    <view class="pick-h" bindtap="onPickOpen">
-      <text class="pick-k mono">今天做一条</text>
-      <text class="pick-src mono">随机一条 · 性价比极高</text>
-    </view>
-
-    <view class="pick-t serif" bindtap="onPickOpen">{{pick.t}}</view>
-    <view class="pick-p" bindtap="onPickOpen">{{pick.pr}}</view>
-
-    <view class="pick-cost">
-      <cost-tag tag="{{pick.tag}}" label-map="{{labelMap}}" size="sm" />
-    </view>
-
-    <view class="pick-acts">
-      <view class="btn btn--ghost" catchtap="onPickShuffle">换一条</view>
-      <view
-        class="btn {{pickState === 'none' ? 'btn--primary' : 'btn--on'}}"
-        catchtap="onPickToggle"
-      >{{pickState === 'none' ? '加进清单' : (pickState === 'done' ? '今天做到了 ✓' : '已在清单 ✓')}}</view>
-    </view>
+  <view class="share-mode-note" wx:if="{{singlePage}}">朋友圈预览 · 点击下方“前往小程序”，搜索与阅读全文。</view>
+  <view class="home-brand">
+    <text class="home-brand-name">{{bookName}}</text>
+    <text class="home-brand-meta mono">{{counts.sections}} 节 · {{counts.items}} 条 · 原文阅读</text>
   </view>
 
   <!-- 检索入口 -->
+  <view class="home-search">
+  <view class="home-search-title">找一条需要的建议</view>
   <view class="searchbar">
     <view class="ic"></view>
     <input
@@ -58,9 +20,20 @@
       bindconfirm="onSearchConfirm"
     />
   </view>
+  </view>
+
+  <view class="home-module home-module--recommend" wx:if="{{pick}}">
+  <view class="home-module-head">
+    <view class="home-module-title"><text class="home-module-number">01</text><text>推荐阅读</text></view>
+    <view class="today-all" bindtap="onPickShuffle" aria-role="button">换一条 ↻</view>
+  </view>
+  <item-row item="{{pick}}" highlight show-sec bindtapitem="onAdviceOpen" bindretry="onAdviceRetry" />
+  </view>
 
   <!-- 找问题：按处境分五组，先扫 5 个组名，再展开到具体问题 -->
-  <view class="label">找问题 · 按你的处境</view>
+  <view class="home-module home-module--topics">
+  <view class="home-module-head"><view class="home-module-title"><text class="home-module-number">02</text><text>按你的处境</text></view></view>
+  <view class="home-module-note">从关心的问题开始，展开分类找建议。</view>
   <view class="glist">
     <view class="grow" wx:for="{{groups}}" wx:for-item="g" wx:key="key">
       <view class="ghead" data-key="{{g.key}}" bindtap="toggleGroup">
@@ -84,84 +57,18 @@
       </view>
     </view>
   </view>
+  </view>
 
   <!-- 按节读：老用户的路径保留，只是降到次一级 -->
-  <view class="label">按节读</view>
+  <view class="home-module home-module--directory">
+  <view class="home-module-head"><view class="home-module-title"><text class="home-module-number">03</text><text>全书目录</text></view></view>
   <view class="rowcard" bindtap="goSections">
     <view class="rc-l">
-      <view class="rc-h serif">{{counts.sections}} 节目录</view>
-      <view class="rc-p">每节按性价比从高到低排，节内相互指路可点</view>
+      <view class="rc-h serif">章节与专题长文</view>
+      <view class="rc-p">{{counts.sections}} 节 · {{counts.docs}} 篇专题，按需要查阅</view>
     </view>
     <text class="mono t3">{{counts.items}} 条 ›</text>
   </view>
-
-  <!-- 书以外的材料 -->
-  <view class="label">书以外的材料</view>
-  <view class="rowcard" wx:for="{{longDocs}}" wx:key="sid" data-sid="{{item.sid}}" bindtap="goDoc">
-    <view class="rc-l">
-      <view class="rc-h serif">长文 · {{item.title}}</view>
-    </view>
-    <text class="mono t3">{{item.chars}} 字 ›</text>
-  </view>
-
-  <view class="rowcard" bindtap="goVerifyList">
-    <view class="rc-l">
-      <view class="rc-h serif">核实记录</view>
-      <view class="rc-p">每条来源的逐条核对过程</view>
-    </view>
-    <text class="mono t3">{{verify.length}} 篇 ›</text>
-  </view>
-
-  <view class="rowcard" bindtap="goRefsMap">
-    <view class="rc-l">
-      <view class="rc-h serif">引用对照</view>
-      <view class="rc-p">正文数字与原始文献的逐条对照</view>
-    </view>
-    <text class="mono t3">›</text>
-  </view>
-
-  <view class="rowcard" bindtap="goGlossary">
-    <view class="rc-l">
-      <view class="rc-h serif">术语表</view>
-      <view class="rc-p">阅读时点带虚线的词即可就地查</view>
-    </view>
-    <text class="mono t3">{{glossaryCount}} 条 ›</text>
-  </view>
-
-  <!-- 离线 -->
-  <view class="label">离线</view>
-
-  <!-- 下载中：进度在顶部状态条就地显示（.dl 大进度块已删，避免双份进度） -->
-  <view class="rowcard" wx:if="{{downloading}}">
-    <view class="rc-l">
-      <view class="rc-h serif">下载全书</view>
-      <view class="rc-p">下载中 · {{progress.text}} · {{progress.size}}</view>
-    </view>
-    <text class="mono t3">{{progress.percent}}%</text>
-  </view>
-
-  <view class="rowcard" bindtap="onDownload" wx:else>
-    <view class="rc-l">
-      <view class="rc-h serif">下载全书</view>
-      <view class="rc-p">{{cacheText}}</view>
-    </view>
-    <text class="mono tg">{{cache.complete ? '重新校验 ›' : '下载 ›'}}</text>
-  </view>
-
-  <view class="rowcard" bindtap="onClearCache" wx:if="{{!downloading && cache.files > 0}}">
-    <view class="rc-l">
-      <view class="rc-h serif">清空本机内容缓存</view>
-      <view class="rc-p">收藏与清单不受影响</view>
-    </view>
-    <text class="mono t3">›</text>
-  </view>
-
-  <view class="rowcard" bindtap="goVersion">
-    <view class="rc-l">
-      <view class="rc-h serif">版本与更新</view>
-      <view class="rc-p">同步历史与内容统计</view>
-    </view>
-    <text class="mono t3">›</text>
   </view>
 
   <view class="disclaimer">{{disclaimer}}</view>

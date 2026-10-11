@@ -62,7 +62,12 @@ function recordSync(m) {
 /* ---------------------------------------------------------------- 收藏 */
 
 function getFavorites() {
-  return read(FAV_KEY, {})
+  const all = read(FAV_KEY, {})
+  const active = {}
+  Object.keys(all).forEach((sid) => {
+    if (all[sid] && !all[sid].removed) active[sid] = all[sid]
+  })
+  return active
 }
 
 function isFavorite(sid) {
@@ -71,38 +76,37 @@ function isFavorite(sid) {
 
 /** 返回收藏后的状态 */
 function toggleFavorite(sid) {
-  const fav = getFavorites()
-  let on
-  if (fav[sid]) {
-    delete fav[sid]
-    on = false
-    push('favorite', sid, { removed: true, at: new Date().toISOString() })
-  } else {
-    const at = new Date().toISOString()
-    fav[sid] = { at }
-    on = true
-    push('favorite', sid, fav[sid])
-  }
-  write(FAV_KEY, fav)
+  const fav = Object.assign({}, read(FAV_KEY, {}))
+  const on = !isFavorite(sid)
+  const previousStamp = Date.parse((fav[sid] || {}).at || '') || 0
+  const at = new Date(Math.max(Date.now(), previousStamp + 1)).toISOString()
+  fav[sid] = on ? { at } : { removed: true, at }
+  if (!write(FAV_KEY, fav)) throw new Error('SAVE_FAILED')
+  push('favorite', sid, fav[sid])
   return on
 }
 
 function removeFavorite(sid) {
-  const fav = getFavorites()
-  if (!fav[sid]) return
-  delete fav[sid]
-  write(FAV_KEY, fav)
-  push('favorite', sid, { removed: true, at: new Date().toISOString() })
+  if (isFavorite(sid)) toggleFavorite(sid)
 }
 
 /* ---------------------------------------------------------------- 打卡 */
 
 function getCheckins() {
-  return read(CHECK_KEY, {})
+  const all = read(CHECK_KEY, {})
+  const active = {}
+  Object.keys(all).forEach((sid) => {
+    if (all[sid] && !all[sid].removed) active[sid] = all[sid]
+  })
+  return active
 }
 
 function getCheckin(sid) {
   return getCheckins()[sid] || null
+}
+
+function getCheckinRevision(sid) {
+  return (read(CHECK_KEY, {})[sid] || {}).updatedAt || ''
 }
 
 /* 完成日记：{ 'YYYY-MM-DD': 当天标为做到的次数 }，只用来算「连续天数」。
@@ -116,15 +120,6 @@ function dayKey(d) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
-function bumpDay(delta) {
-  const days = read(DAYS_KEY, {})
-  const k = dayKey(new Date())
-  days[k] = Math.max(0, (days[k] || 0) + delta)
-  const keys = Object.keys(days).sort()
-  while (keys.length > DAYS_MAX) delete days[keys.shift()]
-  write(DAYS_KEY, days)
-}
-
 /**
  * 连续天数：从今天往回数，遇到第一个「有做到」的日子起算、到第一个空日止。
  * 今天还没做**不算断**（一天才过了一半就判人断签不合理），
@@ -132,8 +127,8 @@ function bumpDay(delta) {
  */
 function dayStats() {
   const days = read(DAYS_KEY, {})
-  const today = days[dayKey(new Date())] || 0
-  const d = new Date()
+  const today = days[dayKey(new Date(Date.now()))] || 0
+  const d = new Date(Date.now())
   let streak = 0
   let started = false
   for (let i = 0; i < DAYS_MAX; i++) {
@@ -151,16 +146,46 @@ function dayStats() {
 
 /** 写一条清单记录。plan: 'today'（默认，今天做）| 'later'（稍后） */
 function setCheckin(sid, patch) {
-  const all = getCheckins()
-  const prev = all[sid] || { done: false, plan: 'today', note: '' }
-  const next = Object.assign({}, prev, patch, { updatedAt: new Date().toISOString() })
+  const prev = getCheckin(sid) || { done: false, plan: 'today', note: '' }
+  const next = Object.assign({}, prev, patch)
   if (next.plan !== 'later') next.plan = 'today'
-  all[sid] = next
-  write(CHECK_KEY, all)
-  // 只有 done 真的翻转时才动「完成日记」，否则改备注之类也会虚增连续天数
-  if (!!prev.done !== !!next.done) bumpDay(next.done ? 1 : -1)
+  return replaceCheckin(sid, next).record
+}
+
+function replaceCheckin(sid, record, inverseChanges) {
+  const all = read(CHECK_KEY, {})
+  const before = all[sid] && !all[sid].removed ? all[sid] : null
+  const previousStamp = Date.parse((all[sid] || {}).updatedAt || '') || 0
+  const timestamp = new Date(Math.max(Date.now(), previousStamp + 1)).toISOString()
+  const next = record ? Object.assign({}, record, { updatedAt: timestamp }) : { removed: true, updatedAt: timestamp }
+  const today = dayKey(new Date(Date.now()))
+  const changes = Object.assign({}, inverseChanges || {})
+  if (!inverseChanges && !!(before && before.done) !== !!(record && record.done)) {
+    const day = record && record.done ? today : (before && before.doneDay) || today
+    changes[day] = record && record.done ? 1 : -1
+    if (record && record.done) next.doneDay = day
+    else delete next.doneDay
+  }
+  if (record) {
+    delete next.removed
+    if (next.plan !== 'later') next.plan = 'today'
+  }
+  const days = read(DAYS_KEY, {})
+  const nextDays = Object.assign({}, days)
+  Object.keys(changes).forEach((day) => {
+    nextDays[day] = Math.max(0, (days[day] || 0) + changes[day])
+    changes[day] = nextDays[day] - (days[day] || 0)
+  })
+  const keys = Object.keys(nextDays).sort()
+  while (keys.length > DAYS_MAX) delete nextDays[keys.shift()]
+  const nextAll = Object.assign({}, all, { [sid]: next })
+  if (!write(CHECK_KEY, nextAll)) throw new Error('SAVE_FAILED')
+  if (Object.keys(changes).length && !write(DAYS_KEY, nextDays)) {
+    write(CHECK_KEY, all)
+    throw new Error('SAVE_FAILED')
+  }
   push('checkin', sid, next)
-  return next
+  return { record: record ? next : null, updatedAt: timestamp, dayChanges: changes }
 }
 
 /** 加进清单（不改变完成状态） */
@@ -200,18 +225,14 @@ function listBuckets() {
 
 /** 把一条从清单里彻底移出（不是标成没做） */
 function removeCheckin(sid) {
-  const all = getCheckins()
-  if (!all[sid]) return
-  const wasDone = !!all[sid].done
-  delete all[sid]
-  write(CHECK_KEY, all)
-  if (wasDone) bumpDay(-1)
-  push('checkin', sid, { removed: true, updatedAt: new Date().toISOString() })
+  if (!getCheckin(sid)) return
+  replaceCheckin(sid, null)
 }
 
 /* ---------------------------------------------------------------- 云端同步 */
 
 const pending = []
+let flushing = null
 
 function push(kind, sid, payload) {
   pending.push({ kind, sid, payload })
@@ -228,8 +249,9 @@ function flushSoon() {
 }
 
 /** 补传本地变更。失败就留在队列里，等下一次动作或前台切回时再试。 */
-async function flush() {
-  if (!pending.length) return
+function flush() {
+  if (flushing) return flushing
+  if (!pending.length) return Promise.resolve()
   const batch = pending.splice(0, pending.length)
   const fav = {}
   const checks = {}
@@ -237,12 +259,20 @@ async function flush() {
     if (p.kind === 'favorite') fav[p.sid] = p.payload
     else checks[p.sid] = p.payload
   }
-  try {
-    await cloud.call('getUserData', { op: 'merge', favorite: fav, checkin: checks }, { timeout: 10000 })
-  } catch (e) {
-    // 放回队列头部，下次再试
-    pending.unshift(...batch)
-  }
+  flushing = (async () => {
+    let synced = false
+    try {
+      const result = await cloud.call('getUserData', { op: 'merge', favorite: fav, checkin: checks }, { timeout: 10000 })
+      if (!result || !result.ok) throw new Error('SYNC_FAILED')
+      synced = true
+    } catch (error) {
+      pending.unshift(...batch)
+    } finally {
+      flushing = null
+      if (synced && pending.length) flushSoon()
+    }
+  })()
+  return flushing
 }
 
 /**
@@ -252,8 +282,8 @@ async function pull() {
   try {
     const res = await cloud.call('getUserData', { op: 'read' }, { timeout: 10000 })
     if (!res || !res.ok) return { ok: false }
-    const localFav = getFavorites()
-    const localCheck = getCheckins()
+    const localFav = read(FAV_KEY, {})
+    const localCheck = read(CHECK_KEY, {})
     const cloudFav = res.favorite || {}
     const cloudCheck = res.checkin || {}
 
@@ -262,10 +292,6 @@ async function pull() {
     Object.keys(cloudFav).forEach((sid) => {
       const c = cloudFav[sid]
       const l = fav[sid]
-      if (c && c.removed) {
-        if (!l || !l.at || (c.at && c.at > l.at)) delete fav[sid]
-        return
-      }
       if (!l || !l.at || (c.at && c.at > l.at)) fav[sid] = c
     })
     write(FAV_KEY, fav)
@@ -278,6 +304,15 @@ async function pull() {
       if (!l || !l.updatedAt || (c.updatedAt && c.updatedAt > l.updatedAt)) check[sid] = c
     })
     write(CHECK_KEY, check)
+
+    Object.keys(localFav).forEach((sid) => {
+      const remote = cloudFav[sid]
+      if (!remote || (localFav[sid].at || '') > (remote.at || '')) push('favorite', sid, localFav[sid])
+    })
+    Object.keys(localCheck).forEach((sid) => {
+      const remote = cloudCheck[sid]
+      if (!remote || (localCheck[sid].updatedAt || '') > (remote.updatedAt || '')) push('checkin', sid, localCheck[sid])
+    })
 
     // 本地比云新的部分补推上去
     return { ok: true, favorite: fav, checkin: check }
@@ -294,8 +329,8 @@ async function pull() {
  */
 function migrate(prevIdMap) {
   if (!prevIdMap || !Object.keys(prevIdMap).length) return 0
-  const fav = getFavorites()
-  const check = getCheckins()
+  const fav = read(FAV_KEY, {})
+  const check = read(CHECK_KEY, {})
   let n = 0
 
   Object.keys(prevIdMap).forEach((oldSid) => {
@@ -329,7 +364,9 @@ module.exports = {
   removeFavorite,
   getCheckins,
   getCheckin,
+  getCheckinRevision,
   setCheckin,
+  replaceCheckin,
   addToList,
   setPlan,
   dayStats,

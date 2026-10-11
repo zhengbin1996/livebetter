@@ -1,17 +1,10 @@
 const app = getApp()
 const cfg = require('../../config')
-const content = require('../../utils/content')
-const fmt = require('../../utils/fmt')
 const store = require('../../utils/store')
-
-/**
- * 「今天」页 = 行动起点。
- *
- * 旧版首页是一份导航目录（书封 + 34 个问题平铺 + 目录 + 材料 + 离线 + 版本），
- * 打开它并不回答用户最关心的那句话：「我今天该做哪一条？」
- * 现在首屏第一屏就是这条建议本身（今天做一条），并且**离线也能推**——
- * 候选池 picks 随主包内置，不必为了显示一条去下一个分片。
- */
+const advice = require('../../utils/advice')
+const adviceContent = require('../../utils/advice-content')
+const favorites = require('../../utils/favorites')
+const share = require('../../utils/share')
 
 /** 同一天进来看到同一条；隔天自动换。用本地日期算种子，避免 UTC 午夜换条。 */
 function daySeed() {
@@ -28,20 +21,10 @@ Page({
     statLine: '',
     // 找问题：按处境分五组（来自 essentials.problemGroups）
     groups: [],
-    longDocs: [],
-    verify: [],
-    glossaryCount: 0,
-    cache: null,
-    cacheText: '',
-    offline: null,
-    downloading: false,
-    progress: null,
     disclaimer: cfg.DISCLAIMER,
     q: '',
     labelMap: null,
-    // 今天做一条
     pick: null,
-    pickState: 'none', // none | todo | done
     pickTotal: 0,
   },
 
@@ -50,23 +33,39 @@ Page({
   pickIdx: -1,
 
   async onLoad() {
+    this.setData({ singlePage: share.singlePage() })
+    share.enable(true)
     await app.ready
     this.apply()
     // 上游改标题会让条目 id 变；拿到新 manifest 后把收藏/打卡迁到新 id
     const m = app.globalData.manifest
     if (m && m.prevIdMap) {
       const n = store.migrate(m.prevIdMap)
-      if (n) wx.showToast({ title: `已迁移 ${n} 项收藏 / 打卡`, icon: 'none' })
+      if (n) wx.showToast({ title: '本机记录已更新', icon: 'none' })
     }
   },
 
   onShow() {
-    if (this.getTabBar) {
+    favorites.show(this)
+    if (!share.singlePage() && this.getTabBar) {
       const tb = this.getTabBar()
       if (tb) tb.setTab(0)
     }
     if (app.globalData.essentials) this.apply()
   },
+
+  onHide() { favorites.hide(this) },
+  onUnload() { favorites.hide(this) },
+  onShareAppMessage() { return share.home() },
+  onShareTimeline() { return share.timeline(share.home()) },
+
+  onAdviceOpen(event) {
+    if (share.requireFullApp()) return
+    const item = event.detail.item
+    wx.navigateTo({ url: `/pages/item-detail/index?sid=${item.sid}${item.num ? `&num=${item.num}` : ''}` })
+  },
+
+  onAdviceRetry() { this.buildPick(0) },
 
   apply() {
     const e = app.globalData.essentials || {}
@@ -75,9 +74,6 @@ Page({
     const ev = stats.evidence || {}
     const tier = stats.tier || {}
     const counts = e.counts || {}
-    const docs = e.docs || []
-    const cache = content.localStats()
-    const cloudSyncing = app.globalData.cloudReady && !app.globalData.manifest
 
     this.setData({
       info: app.versionInfo(),
@@ -85,39 +81,9 @@ Page({
       counts,
       statLine: `${counts.items} 条 · ${counts.sections} 节 · 证据 A 级 ${ev.A || 0} 条 · 性价比极高 ${tier['极高'] || 0} 条`,
       groups: this.buildGroups(e),
-      longDocs: docs.filter((d) => d.kind === 'doc'),
-      verify: e.verify || [],
-      glossaryCount: (e.glossary || []).length,
-      cache,
-      cacheText: cache.complete
-        ? '已完整存到本机，断网也能读'
-        : cloudSyncing
-          ? '云端内容同步中，同步完成后可下载'
-          : `已存 ${cache.files} / ${cache.total} 节 · ${fmt.fmtBytes(cache.bytes)}`,
-      offline: this.offlineStrip(cache, cloudSyncing),
       labelMap: legend.tagLabels || null,
     })
     this.buildPick(0)
-  },
-
-  /** 首屏的离线状态条：三态（未存 / 下载中 / 已存）。
-   *  下载中态由 wxml 直接读 downloading + progress 渲染，不经过这里。
-   *  完整态刻意不带 action 文案 —— 「管理 ›」暗示可跳转但实际不跳，会被当成 bug。 */
-  offlineStrip(cache, cloudSyncing) {
-    if (cache.complete) {
-      return { tone: 'g', text: `已存本机 ${fmt.fmtBytes(cache.bytes)} · 断网可读`, action: '' }
-    }
-    if (cloudSyncing) {
-      return { tone: 'off', text: '云端内容同步中，稍后可下载全书', action: '' }
-    }
-    if (cache.files > 0) {
-      return {
-        tone: 'a',
-        text: `已存 ${cache.files} / ${cache.total} 节 · ${fmt.fmtBytes(cache.bytes)}`,
-        action: '续传',
-      }
-    }
-    return { tone: 'off', text: '未下载 · 断网时读不了', action: '下载全书' }
   },
 
   buildGroups(e) {
@@ -142,36 +108,29 @@ Page({
     this.setData({ groups })
   },
 
-  /* ---------------------------------------------------------------- 今天做一条 */
-
   buildPick(step) {
     const picks = ((app.globalData.essentials || {}).picks) || []
     const len = picks.length
     if (!len) {
-      this.setData({ pick: null, pickState: 'none', pickTotal: 0 })
+      this.setData({ pick: null, pickTotal: 0 })
       return
     }
-    const check = store.getCheckins()
-    const isDone = (sid) => !!(check[sid] && check[sid].done)
-
     let idx = this.pickIdx
     if (idx < 0) idx = daySeed() % len
     if (step) idx = (idx + step + len * 10) % len
-    // 落点若已经做完，往后找第一个还没做的（最多绕一圈，全是已完成就停在原地）
-    let guard = 0
-    while (guard < len && isDone(picks[idx].sid)) {
-      idx = (idx + 1) % len
-      guard += 1
-    }
+    const selected = picks[idx]
     this.pickIdx = idx
-
-    const p = picks[idx]
-    const rec = check[p.sid]
+    const p = advice.normalize(selected)
     this.setData({
       pick: p,
       pickTotal: len,
-      pickState: rec ? (rec.done ? 'done' : 'todo') : 'none',
     })
+    if (this.pickHydrating !== p.sid && !p.summaryFull) {
+      this.pickHydrating = p.sid
+      adviceContent.hydrate([p], (rows) => {
+        if (this.favoritesActive && this.data.pick && this.data.pick.sid === p.sid) this.setData({ pick: rows[0] })
+      }).finally(() => { if (this.pickHydrating === p.sid) this.pickHydrating = '' })
+    }
   },
 
   onPickShuffle() {
@@ -179,29 +138,17 @@ Page({
   },
 
   onPickOpen() {
+    if (share.requireFullApp()) return
     const p = this.data.pick
     if (!p) return
     // 带上条号：万一内置索引与云端分片版本不一致，详情页还能按条号兜底落到同一条
     wx.navigateTo({ url: `/pages/item-detail/index?sid=${p.sid}${p.n ? `&num=${p.n}` : ''}` })
   },
 
-  /** 首屏就能行动：列表层直接加进清单，不必先进详情页 */
-  onPickToggle() {
-    const p = this.data.pick
-    if (!p) return
-    if (this.data.pickState === 'none') {
-      store.addToList(p.sid, 'today')
-      wx.showToast({ title: '已加进清单 · 今天', icon: 'none' })
-    } else {
-      store.removeCheckin(p.sid)
-      wx.showToast({ title: '已移出清单', icon: 'none' })
-    }
-    this.buildPick(0)
-  },
-
   /* ---------------------------------------------------------------- 检索 */
 
   onSearchTap() {
+    if (share.requireFullApp()) return
     wx.switchTab({ url: '/pages/search/index' })
   },
 
@@ -210,6 +157,7 @@ Page({
   },
 
   onSearchConfirm() {
+    if (share.requireFullApp()) return
     const q = (this.data.q || '').trim()
     if (!q) {
       wx.switchTab({ url: '/pages/search/index' })
@@ -223,104 +171,15 @@ Page({
   /* ---------------------------------------------------------------- 导航 */
 
   onProblem(e) {
+    if (share.requireFullApp()) return
     const sec = e.currentTarget.dataset.sec
     if (!sec) return
     wx.navigateTo({ url: `/subpackages/read/pages/section-detail/index?sec=${sec}` })
   },
 
   goSections() {
+    if (share.requireFullApp()) return
     wx.navigateTo({ url: '/pages/section-list/index' })
-  },
-
-  goDoc(e) {
-    const sid = e.currentTarget.dataset.sid
-    wx.navigateTo({ url: `/subpackages/read/pages/doc-read/index?sid=${sid}` })
-  },
-
-  goVerifyList() {
-    wx.navigateTo({ url: '/subpackages/read/pages/verify-read/index' })
-  },
-
-  goRefsMap() {
-    // 引用对照本身就是一篇带表格的长文，直接交给长文阅读器
-    const d = content.refsMapEntry()
-    if (!d) {
-      wx.showToast({ title: '引用对照未随索引提供', icon: 'none' })
-      return
-    }
-    wx.navigateTo({ url: `/subpackages/read/pages/doc-read/index?sid=${d.sid}` })
-  },
-
-  goGlossary() {
-    wx.navigateTo({ url: '/subpackages/mine/pages/glossary/index' })
-  },
-
-  goVersion() {
-    wx.navigateTo({ url: '/subpackages/mine/pages/version/index' })
-  },
-
-  /* ---------------------------------------------------------------- 离线 */
-
-  onOfflineTap() {
-    // 下载中：进度就在状态条上，重复触发没有意义
-    if (this.data.downloading) return
-    if (this.data.cache && this.data.cache.complete) {
-      wx.showToast({ title: '全书已在手机里，断网也能读', icon: 'none' })
-      return
-    }
-    // 点击的瞬间 downloading 置 true，状态条就地切到「下载中」态 —— 反馈发生在指尖
-    this.onDownload()
-  },
-
-  async onDownload() {
-    if (this.data.downloading) return
-    if (!app.globalData.cloudReady) {
-      wx.showToast({ title: '未连上云开发，无法下载', icon: 'none' })
-      return
-    }
-    this.setData({
-      downloading: true,
-      progress: { percent: 0, done: 0, total: 0, text: '准备中', size: '' },
-    })
-    try {
-      await content.downloadAll((p) => {
-        this.setData({
-          progress: Object.assign({}, p, {
-            text: `${p.done} / ${p.total} 节`,
-            size: `${fmt.fmtBytes(p.bytes)} / ${fmt.fmtBytes(p.totalBytes)}`,
-          }),
-        })
-      })
-      this.setData({ cache: content.localStats() })
-      this.apply()
-      wx.showToast({ title: '全书已存到本机', icon: 'success' })
-    } catch (err) {
-      // 必须留痕：这个 catch 包着 183 次网络请求，不打印就完全没法定位
-      console.error('[download] 下载全书失败：', err)
-      const tips = {
-        NO_MANIFEST: '云端内容还没同步好，稍后再试',
-        SYNCING: '云端内容同步中，稍后再试',
-      }
-      wx.showToast({
-        title: (err && tips[err.code]) || '下载中断，可再点一次续传',
-        icon: 'none',
-      })
-    } finally {
-      this.setData({ downloading: false, progress: null })
-    }
-  },
-
-  onClearCache() {
-    wx.showModal({
-      title: '清空本机内容缓存',
-      content: '收藏和清单不受影响。清空后再次阅读需要重新下载对应章节。',
-      success: (r) => {
-        if (!r.confirm) return
-        content.clearAll()
-        this.apply()
-        wx.showToast({ title: '已清空', icon: 'none' })
-      },
-    })
   },
 
   noop() {},

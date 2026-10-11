@@ -1,4 +1,5 @@
 const app = getApp()
+const readingHelp = require('../../../../utils/reading-help')
 
 Page({
   data: {
@@ -15,7 +16,7 @@ Page({
     await app.ready
     const e = app.globalData.essentials || {}
     const terms = e.glossary || []
-    const legend = e.legend || {}
+    const legend = Object.assign({}, e.legend || {}, { howto: readingHelp })
     const labels = legend.tagLabels || {}
     const order = [
       ['money', '钱'],

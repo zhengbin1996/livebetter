@@ -1,5 +1,6 @@
 const config = require('../config')
 const cloud = require('./cloud')
+const reader = require('./reader-content')
 
 /**
  * 内容分片服务。
@@ -44,7 +45,7 @@ function manifest() {
 function clientShards() {
   const m = manifest()
   const list = (m && m.shards) || []
-  return list.filter((s) => s.kind !== 'corpus')
+  return list.filter((entry) => reader.isReadableKind(entry.kind))
 }
 
 function shardPath(kind, key) {

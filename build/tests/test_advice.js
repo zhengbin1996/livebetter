@@ -1,0 +1,25 @@
+const assert = require('assert')
+const fs = require('fs')
+const path = require('path')
+const memory = {}
+global.wx = { getStorageSync: (key) => memory[key] || '', setStorageSync: (key, value) => { memory[key] = JSON.parse(JSON.stringify(value)) } }
+global.getApp = () => ({ globalData: { version: 'v1', essentials: { sidIndex: { 's01-a': [1, 2] } } } })
+const filename = path.resolve(__dirname, '../../miniprogram/utils/advice.js')
+const advice = fs.existsSync(filename) ? require(filename) : {}
+assert.strictEqual(typeof advice.normalize, 'function', '缺少原文摘要归一化')
+const original = '儿童不能使用。适用于成年人，风险下降 12%，但需先咨询医生。'
+const item = advice.normalize({ sid: 's01-a', title: '原标题', preview: '旧首句', fields: { '说人话': '<p>儿童不能使用。适用于成年人，风险下降 <b>12%</b>，但需先咨询医生。</p>' }, todo: true })
+assert.strictEqual(item.summary, original)
+assert.strictEqual(item.todo, true)
+assert.strictEqual(advice.normalize({ sid: 's02-empty', title: '只有标题' }).summary, '')
+assert.strictEqual(advice.normalize({ sid: 's02-fragment', title: '只有片段', snippet: '搜索命中截取', preview: '旧首句', summary: '未标完整摘要' }).summary, '')
+assert.strictEqual(advice.textOf('<p>HR &lt; 1，95% CI &amp; &#x41;</p><p>下一段</p>'), 'HR < 1，95% CI & A\n下一段')
+advice.remember(item)
+assert.strictEqual(advice.normalize({ sid: 's01-a', preview: '短片段' }).summary, original)
+const missing = advice.placeholder('s01-a')
+assert.strictEqual(missing.title, '原标题')
+assert.strictEqual(missing.num, 2)
+const unavailable = advice.placeholder('s03-unavailable')
+assert.strictEqual(unavailable.sec, 3)
+assert.strictEqual(unavailable.unavailable, true)
+console.log('PASS 原文摘要完整、条件数字与实体保留、缺失摘要、缓存占位')

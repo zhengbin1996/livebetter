@@ -1,22 +1,22 @@
 {
   "light": {
-    "navBgColor": "#F4F5F2",
+    "navBgColor": "#FAF9F5",
     "navTxtStyle": "black",
-    "bgColor": "#F4F5F2",
+    "bgColor": "#FAF9F5",
     "bgTxtStyle": "dark",
-    "tabBgColor": "#FBFBF9",
+    "tabBgColor": "#FFFFFF",
     "tabBorderColor": "black",
-    "tabColor": "#8C918D",
-    "tabSelectedColor": "#2F5D50"
+    "tabColor": "#6C6C61",
+    "tabSelectedColor": "#B3440C"
   },
   "dark": {
-    "navBgColor": "#15181A",
+    "navBgColor": "#191A17",
     "navTxtStyle": "white",
-    "bgColor": "#15181A",
+    "bgColor": "#191A17",
     "bgTxtStyle": "light",
-    "tabBgColor": "#181B1D",
+    "tabBgColor": "#24251F",
     "tabBorderColor": "white",
-    "tabColor": "#7B827D",
-    "tabSelectedColor": "#74AE98"
+    "tabColor": "#ADAEA0",
+    "tabSelectedColor": "#FFB078"
   }
 }

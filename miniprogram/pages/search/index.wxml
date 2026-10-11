@@ -1,4 +1,5 @@
-<view class="page page--flat">
+<view class="page">
+  <view class="page-heading">找到需要的建议。</view>
   <view class="searchbox">
     <view class="searchbar">
       <view class="ic"></view>
@@ -8,7 +9,6 @@
         placeholder="搜建议、症状、钱的事、法条"
         placeholder-class="sph"
         confirm-type="search"
-        focus="{{true}}"
         bindinput="onInput"
         bindconfirm="onConfirm"
       />
@@ -33,23 +33,59 @@
   </view>
 
   <view class="filterbar">
-    <text class="fb-k mono">筛选</text>
-    <text class="fb-v" wx:if="{{grade}}">证据 {{grade}}</text>
-    <text class="fb-v" wx:if="{{tier}}">性价比 {{tier}}</text>
-    <text class="fb-v" wx:if="{{caliber}}">口径 {{caliber}}</text>
-    <text class="fb-v" wx:if="{{cost.money}}">钱 {{cost.money}}</text>
-    <text class="fb-v" wx:if="{{cost.time}}">时间 {{cost.time}}</text>
-    <text class="fb-v" wx:if="{{cost.will}}">毅力 {{cost.will}}</text>
-    <text class="fb-v" wx:if="{{sec}}">第 {{sec}} 节</text>
-    <text class="fb-x mono" bindtap="toggleFilters">{{filtersOpen ? '收起' : '展开'}}</text>
+    <view class="fb-x" bindtap="toggleFilters" aria-role="button">筛选 · {{activeFilters.length || '全部'}}</view>
+    <view class="fb-v" wx:for="{{activeFilters}}" wx:key="key" data-key="{{item.key}}" bindtap="removeFilter" aria-role="button">{{item.label}} ×</view>
+  </view>
+  <!-- 状态行 -->
+  <view class="statusline" wx:if="{{hasSearched}}">
+    <text class="mono" wx:if="{{searching}}">搜索中…</text>
+    <block wx:else>
+      <text class="mono">命中 {{total}} 条</text>
+      <text class="mono t3" wx:if="{{!byServer}}"> · 仅搜已缓存（离线）</text>
+      <text class="mono t3" wx:elif="{{total > shown}}"> · 已显示 {{shown}}</text>
+    </block>
   </view>
 
-  <view class="filters" wx:if="{{filtersOpen}}">
+  <!-- 结果 -->
+  <view class="results" wx:if="{{visible.length}}">
+    <block wx:for="{{visible}}" wx:key="sid">
+      <item-row wx:if="{{item.kind !== 'doc'}}" item="{{item}}" show-sec bindtapitem="onAdviceOpen" bindretry="onAdviceRetry" />
+      <view wx:else class="hit hit--doc" data-sid="{{item.sid}}" data-kind="{{item.kind}}" data-dockind="{{item.docKind}}" bindtap="onResult">
+        <view class="hit-h"><text class="hit-sec">专题长文</text></view>
+        <view class="hit-t"><text wx:for="{{item.titleParts}}" wx:for-item="part" wx:key="i" class="{{part.hit ? 'hl' : ''}}">{{part.t}}</text></view>
+        <view class="hit-s"><text wx:for="{{item.snippetParts}}" wx:for-item="part" wx:key="i" class="{{part.hit ? 'hl' : ''}}">{{part.t}}</text></view>
+        <view class="doc-open">阅读原文 ›</view>
+      </view>
+    </block>
+    <view class="morehint mono" wx:if="{{hits.length > shown}}">继续下滑看更多</view>
+    <view class="morehint mono" wx:elif="{{total > hits.length}}">已展示前 {{hits.length}} 条，可缩小关键词或筛选范围。</view>
+  </view>
+
+  <view class="empty" wx:elif="{{hasSearched && !searching}}">
+    <view class="h serif">没找到</view>
+    <view class="p">换个说法试试。这本书的条目一律动词开头，「说人话」那栏最接近日常说法。</view>
+  </view>
+
+  <view class="empty" wx:elif="{{!hasSearched}}">
+    <view class="h serif">从关键词找到需要的内容</view>
+    <view class="p">
+      可以搜症状（「血压」）、钱的事（「押金」「加班费」）、法条（「工伤」）、
+      也可以搜研究方法（「荟萃」「随机分组」）。<br />
+      点击标题阅读摘要，需要时展开原文；收藏后可随时回来查阅。
+    </view>
+  </view>
+
+  <view class="disclaimer">检索只匹配原文，不改写、不补数字。命中后请以条目详情里的原文为准。</view>
+</view>
+<view class="filter-mask" wx:if="{{filtersOpen}}" bindtap="closeFilters" catchtouchmove="noop">
+  <view class="filter-sheet" catchtap="noop">
+    <view class="filter-head"><view>筛选建议</view><view class="filter-close" bindtap="closeFilters" aria-role="button">关闭 ×</view></view>
+      <scroll-view class="filter-scroll" scroll-y>
     <view class="fg" wx:for="{{costDims}}" wx:for-item="dim" wx:key="key">
       <text class="fg-k mono">{{dim.label}}</text>
       <view class="fg-opts">
         <text
-          class="chip {{cost[dim.key] === o[0] ? 'on' : ''}}"
+          class="chip {{draft.cost[dim.key] === o[0] ? 'on' : ''}}"
           wx:for="{{dim.opts}}"
           wx:for-item="o"
           wx:key="*this"
@@ -63,28 +99,28 @@
     <view class="fg">
       <text class="fg-k mono">证据等级</text>
       <view class="fg-opts">
-        <text class="chip {{grade === 'A' ? 'on' : ''}}" data-v="A" bindtap="pickGrade">A</text>
-        <text class="chip {{grade === 'B' ? 'on' : ''}}" data-v="B" bindtap="pickGrade">B</text>
-        <text class="chip {{grade === 'C' ? 'on' : ''}}" data-v="C" bindtap="pickGrade">C</text>
+        <text class="chip {{draft.grade === 'A' ? 'on' : ''}}" data-v="A" bindtap="pickGrade">A</text>
+        <text class="chip {{draft.grade === 'B' ? 'on' : ''}}" data-v="B" bindtap="pickGrade">B</text>
+        <text class="chip {{draft.grade === 'C' ? 'on' : ''}}" data-v="C" bindtap="pickGrade">C</text>
       </view>
     </view>
 
     <view class="fg">
       <text class="fg-k mono">性价比</text>
       <view class="fg-opts">
-        <text class="chip {{tier === '极高' ? 'on' : ''}}" data-v="极高" bindtap="pickTier">极高</text>
-        <text class="chip {{tier === '高' ? 'on' : ''}}" data-v="高" bindtap="pickTier">高</text>
-        <text class="chip {{tier === '一般' ? 'on' : ''}}" data-v="一般" bindtap="pickTier">一般</text>
+        <text class="chip {{draft.tier === '极高' ? 'on' : ''}}" data-v="极高" bindtap="pickTier">极高</text>
+        <text class="chip {{draft.tier === '高' ? 'on' : ''}}" data-v="高" bindtap="pickTier">高</text>
+        <text class="chip {{draft.tier === '一般' ? 'on' : ''}}" data-v="一般" bindtap="pickTier">一般</text>
       </view>
     </view>
 
     <view class="fg">
       <text class="fg-k mono">换回什么</text>
       <view class="fg-opts">
-        <text class="chip {{caliber === '死亡率' ? 'on' : ''}}" data-v="死亡率" bindtap="pickCaliber">换寿命</text>
-        <text class="chip {{caliber === '金钱' ? 'on' : ''}}" data-v="金钱" bindtap="pickCaliber">换钱</text>
-        <text class="chip {{caliber === '时间' ? 'on' : ''}}" data-v="时间" bindtap="pickCaliber">换时间</text>
-        <text class="chip {{caliber === '自由' ? 'on' : ''}}" data-v="自由" bindtap="pickCaliber">换自由</text>
+        <text class="chip {{draft.caliber === '死亡率' ? 'on' : ''}}" data-v="死亡率" bindtap="pickCaliber">换寿命</text>
+        <text class="chip {{draft.caliber === '金钱' ? 'on' : ''}}" data-v="金钱" bindtap="pickCaliber">换钱</text>
+        <text class="chip {{draft.caliber === '时间' ? 'on' : ''}}" data-v="时间" bindtap="pickCaliber">换时间</text>
+        <text class="chip {{draft.caliber === '自由' ? 'on' : ''}}" data-v="自由" bindtap="pickCaliber">换自由</text>
       </view>
     </view>
 
@@ -92,7 +128,7 @@
       <text class="fg-k mono">章节</text>
       <view class="fg-opts">
         <text
-          class="chip {{sec === '' + s.sec ? 'on' : ''}}"
+          class="chip {{draft.sec === '' + s.sec ? 'on' : ''}}"
           wx:for="{{secs}}"
           wx:for-item="s"
           wx:key="sec"
@@ -102,67 +138,8 @@
       </view>
     </view>
 
-    <view class="btn btn--ghost" style="width:100%;margin-top:8rpx" bindtap="resetFilters">清空筛选</view>
-  </view>
 
-  <!-- 状态行 -->
-  <view class="statusline" wx:if="{{hasSearched}}">
-    <text class="mono" wx:if="{{searching}}">搜索中…</text>
-    <block wx:else>
-      <text class="mono">命中 {{total}} 条</text>
-      <text class="mono t3" wx:if="{{!byServer}}"> · 仅搜已缓存（离线）</text>
-      <text class="mono t3" wx:elif="{{total > shown}}"> · 已显示 {{shown}}</text>
-    </block>
+  </scroll-view>
+    <view class="filter-footer"><view class="btn" bindtap="resetFilters">重置</view><view class="btn btn--primary" bindtap="applyFilters">应用筛选</view></view>
   </view>
-
-  <!-- 结果 -->
-  <view class="results" wx:if="{{visible.length}}">
-    <view
-      class="hit {{item.kind === 'doc' ? 'hit--doc' : ''}}"
-      wx:for="{{visible}}"
-      wx:key="sid"
-      data-sid="{{item.sid}}"
-      data-kind="{{item.kind}}"
-      data-dockind="{{item.docKind}}"
-      bindtap="onResult"
-    >
-      <view class="hit-h">
-        <block wx:if="{{item.kind === 'doc'}}">
-          <text class="hit-sec mono">{{item.docKind === 'verify' ? '核实记录' : '长文'}}</text>
-        </block>
-        <block wx:else>
-          <text class="hit-sec mono">{{item.sec}} 节 · {{item.num}}</text>
-          <text class="hit-flag mono" wx:if="{{item.dispute}}">争议</text>
-        </block>
-      </view>
-      <view class="hit-t serif">
-        <text wx:for="{{item.titleParts}}" wx:for-item="p" wx:key="i" class="{{p.hit ? 'hl' : ''}}">{{p.t}}</text>
-      </view>
-      <view class="hit-s">
-        <text wx:for="{{item.snippetParts}}" wx:for-item="p" wx:key="i" class="{{p.hit ? 'hl' : ''}}">{{p.t}}</text>
-      </view>
-      <view class="hit-m" wx:if="{{item.kind !== 'doc'}}">
-        <ev-badge level="{{item.evidenceLevel}}" light sm />
-        <tier-meter level="{{item.ratio}}" sm />
-        <text class="mono t3">性价比 {{item.ratio}}</text>
-      </view>
-    </view>
-    <view class="morehint mono" wx:if="{{total > shown}}">继续下滑看更多</view>
-  </view>
-
-  <view class="empty" wx:elif="{{hasSearched && !searching}}">
-    <view class="h serif">没找到</view>
-    <view class="p">换个说法试试。这本书的条目一律动词开头，「说人话」那栏最接近日常说法。</view>
-  </view>
-
-  <view class="empty" wx:elif="{{!hasSearched}}">
-    <view class="h serif">在 675 条建议里找</view>
-    <view class="p">
-      可以搜症状（「血压」）、钱的事（「押金」「加班费」）、法条（「工伤」）、
-      也可以搜研究方法（「荟萃」「随机分组」）。<br />
-      下面三个快捷口径是作者自己最常用的筛法。
-    </view>
-  </view>
-
-  <view class="disclaimer">检索只匹配原文，不改写、不补数字。命中后请以条目详情里的原文为准。</view>
 </view>

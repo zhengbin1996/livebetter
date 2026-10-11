@@ -2,6 +2,11 @@ const app = getApp()
 const content = require('../../../../utils/content')
 const refs = require('../../../../utils/refs')
 const store = require('../../../../utils/store')
+const advice = require('../../../../utils/advice')
+const favorites = require('../../../../utils/favorites')
+const sectionGuide = require('../../../../utils/section-guide')
+const share = require('../../../../utils/share')
+const shareCover = require('../../../../utils/share-cover')
 
 Page({
   data: {
@@ -10,6 +15,9 @@ Page({
     sec: 0,
     secTitle: '',
     intro: [],
+    guideOpen: false,
+    guideSourceOpen: false,
+    overview: '',
     groups: [],
     items: [],
     glossaryTerm: '',
@@ -18,6 +26,8 @@ Page({
   },
 
   async onLoad(query) {
+    this.setData({ singlePage: share.singlePage() })
+    share.enable(false)
     await app.ready
     this.query = query || {}
     this.setData({
@@ -27,9 +37,15 @@ Page({
   },
 
   onShow() {
+    favorites.show(this, this.markFav)
     // 从详情页返回时刷新收藏标记
     if (this.data.items.length) this.markFav()
   },
+  onHide() { favorites.hide(this) },
+  onUnload() { favorites.hide(this) },
+  onReady() { if (this.shareCoverInfo) shareCover.prepare(this, this.shareCoverInfo) },
+  onShareAppMessage() { return !this.data.loading && !this.data.offline ? shareCover.attach(this, share.section(this.data.sec, this.data.secTitle)) : share.home() },
+  onShareTimeline() { return share.timeline(this.onShareAppMessage()) },
 
   async load() {
     const sec = parseInt(this.query.sec, 10)
@@ -45,19 +61,23 @@ Page({
         sec: shard.sec,
         secTitle: shard.secTitle,
         // mp-html 的 content 传字符串最稳（数组形态在不同版本行为不一致）
-        intro: (shard.intro || []).join(''),
+        intro: refs.readableHtml((shard.intro || []).join('')),
         introLen: (shard.intro || []).length,
-        groups: shard.groups || [],
-        items: shard.items || [],
+        overview: refs.readableHtml(sectionGuide.overview(shard.intro, shard.groups)),
+        groups: sectionGuide.navigation(shard.groups),
+        items: (shard.items || []).map((item) => advice.remember(Object.assign({}, item, { sec: shard.sec }))),
       })
       wx.setNavigationBarTitle({ title: `${shard.sec}. ${shard.secTitle}`.slice(0, 20) })
       this.markFav()
+      share.enable(true)
+      if (!this.data.singlePage) shareCover.prepare(this, shareCover.section(shard.sec, shard.secTitle, shard.intro))
       if (this.query.num) {
         // 从条目详情跳进来时定位到那一条
         setTimeout(() => this.scrollToItem(this.query.num), 60)
       }
     } catch (e) {
       this.setData({ loading: false, offline: true })
+      share.enable(false)
     }
   },
 
@@ -80,6 +100,7 @@ Page({
    * 另外带上条号：万一 sid 与云端内容版本对不上，详情页还能按条号兜底落到同一条。
    */
   goItem(e) {
+    if (share.requireFullApp()) return
     const d = (e && e.detail) || {}
     const it = d.item || null
     const sid = d.sid || (it && it.sid) || ''
@@ -107,6 +128,13 @@ Page({
   goGroup(e) {
     const num = e.currentTarget.dataset.num
     if (num) this.scrollToItem(num)
+  },
+
+  toggleGuide() {
+    this.setData({ guideOpen: !this.data.guideOpen })
+  },
+  toggleGuideSource() {
+    this.setData({ guideSourceOpen: !this.data.guideSourceOpen })
   },
 
   onRetry() {

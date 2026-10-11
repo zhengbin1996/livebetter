@@ -1,7 +1,6 @@
 {
   "usingComponents": {
-    "ev-badge": "../../components/ev-badge/index",
-    "tier-meter": "../../components/tier-meter/index"
+    "item-row": "../../components/item-row/index"
   },
   "navigationBarTitleText": "检索",
   "onReachBottomDistance": 120

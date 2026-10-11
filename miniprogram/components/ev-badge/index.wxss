@@ -4,16 +4,16 @@
   justify-content: center;
   width: 38rpx;
   height: 38rpx;
-  border-radius: 10rpx;
+  border-radius: var(--radius);
   font-family: var(--mono);
   font-size: 23rpx;
-  font-weight: 600;
+  font-weight: 700;
   flex: none;
 }
-.eb.is-sm { width: 32rpx; height: 32rpx; border-radius: 8rpx; font-size: 20rpx; }
+.eb.is-sm { width: 32rpx; height: 32rpx; border-radius: var(--radius); font-size: 22rpx; }
 
-.eb--A { background: var(--green); color: #fff; }
-.eb--B { background: var(--amber); color: #fff; }
+.eb--A { background: var(--green); color: var(--on-green); }
+.eb--B { background: var(--amber); color: var(--on-amber); }
 .eb--C { background: var(--gray-bg); color: var(--gray); border: 1rpx solid var(--line); }
 
 .eb--A.is-light { background: var(--green-bg); color: var(--green); }

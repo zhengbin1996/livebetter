@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小程序名称与头像 · 三个方向</title>
+  <style>
+    :root { color-scheme: light; --paper:#f5f1e7; --ink:#282923; --muted:#726c62; --accent:#b64c2c; --border:#d3cdc0; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:"Microsoft YaHei","PingFang SC",sans-serif; }
+    main { max-width:1140px; margin:auto; padding:36px 24px 28px; }
+    .eyebrow { margin:0 0 12px; color:var(--accent); font-size:12px; letter-spacing:2px; }
+    h1 { margin:0; font-size:clamp(28px,4vw,44px); letter-spacing:-1px; }
+    .intro { margin:14px 0 28px; color:var(--muted); line-height:1.8; font-size:14px; }
+    .directions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+    article { border:1px solid var(--border); background:#fffdf8; display:flex; flex-direction:column; }
+    article.selected { outline:2px solid var(--accent); outline-offset:3px; }
+    .topline { padding:16px 18px 0; display:flex; justify-content:space-between; font-size:12px; color:var(--muted); }
+    .recommend { color:var(--accent); }
+    .hero { display:block; width:150px; height:150px; margin:22px auto; }
+    .content { padding:0 18px 20px; display:flex; flex:1; flex-direction:column; }
+    h2 { margin:0 0 10px; font-size:25px; line-height:1.4; }
+    .long-name { font-size:21px; }
+    .meaning { margin:0 0 18px; font-size:13px; line-height:1.8; min-height:72px; color:var(--muted); }
+    .context { border-top:1px solid var(--border); padding-top:14px; }
+    .label { margin:0 0 12px; color:var(--muted); font-size:11px; }
+    .mini { display:flex; align-items:center; gap:10px; min-height:56px; }
+    .round { width:44px; height:44px; border-radius:50%; }
+    .mini strong { display:block; font-size:13px; }
+    .mini small { display:block; margin-top:5px; color:var(--muted); font-size:11px; line-height:1.6; }
+    .samples { display:flex; align-items:center; gap:12px; margin:14px 0 20px; }
+    .samples img { width:32px; height:32px; border-radius:50%; }
+    .samples .tiny { width:24px; height:24px; }
+    .samples span { font-size:11px; color:var(--muted); }
+    button { width:100%; min-height:42px; border:1px solid var(--ink); color:var(--ink); background:transparent; font:inherit; font-size:13px; cursor:pointer; margin-top:auto; }
+    button:hover, button[aria-pressed="true"] { background:var(--ink); color:var(--paper); }
+    button:focus-visible, a:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
+    .download { display:block; text-align:center; margin-top:13px; color:var(--accent); font-size:12px; text-underline-offset:4px; }
+    .bottom { border-top:1px solid var(--ink); margin-top:28px; padding-top:18px; }
+    #selection { font-size:14px; margin:0 0 10px; }
+    .note { margin:0; font-size:12px; color:var(--muted); line-height:1.8; }
+    .back { display:inline-block; margin-top:16px; color:var(--ink); font-size:12px; text-underline-offset:4px; }
+    @media (max-width:620px) { main { padding:28px 18px; } .directions { grid-template-columns:1fr; } .hero { width:180px; height:180px; } .meaning { min-height:0; } }
+    @media (prefers-reduced-motion:no-preference) { button { transition:background .15s,color .15s; } }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">一本书，随时查阅</p>
+    <h1>给小程序一个好记的名字。</h1>
+    <p class="intro">三组名称与头像，延续当前 C 风格。头像同时展示方形、圆形与小尺寸效果。</p>
+    <div class="directions">
+      <article data-option="A">
+        <div class="topline"><span>A / 随手查书</span><span class="recommend">推荐</span></div>
+        <img class="hero" src="branding/a-life-reference.png" alt="米白底，橙色书本与书签">
+        <div class="content">
+          <h2>人生随查</h2>
+          <p class="meaning">遇到生活里的问题，随手翻书查一查。四个字容易记，直接表达小程序的主要用途。</p>
+          <div class="context"><p class="label">微信列表里的样子</p><div class="mini"><img class="round" src="branding/a-life-reference-256.png" alt="人生随查圆形头像"><div><strong>人生随查</strong><small>查阅《高性价比人生指南》</small></div></div></div>
+          <div class="samples"><img src="branding/a-life-reference-256.png" alt="32px 头像"><img class="tiny" src="branding/a-life-reference-256.png" alt="24px 头像"><span>缩小后仍可识别</span></div>
+          <button type="button" data-choice="A" aria-pressed="false">选 A · 人生随查</button>
+          <a class="download" href="branding/a-life-reference.png" download="人生随查-头像.png">下载 1024px PNG</a>
+        </div>
+      </article>
+      <article data-option="B">
+        <div class="topline"><span>B / 温暖阅读</span><span>更有生活感</span></div>
+        <img class="hero" src="branding/b-clear-living.png" alt="橙色底，展开的米白书页与日光">
+        <div class="content">
+          <h2>明白生活</h2>
+          <p class="meaning">通过阅读，把生活中的选择看明白。书页与日光更温暖，名称的查阅属性稍弱。</p>
+          <div class="context"><p class="label">微信列表里的样子</p><div class="mini"><img class="round" src="branding/b-clear-living-256.png" alt="明白生活圆形头像"><div><strong>明白生活</strong><small>查阅《高性价比人生指南》</small></div></div></div>
+          <div class="samples"><img src="branding/b-clear-living-256.png" alt="32px 头像"><img class="tiny" src="branding/b-clear-living-256.png" alt="24px 头像"><span>明亮，阅读感更强</span></div>
+          <button type="button" data-choice="B" aria-pressed="false">选 B · 明白生活</button>
+          <a class="download" href="branding/b-clear-living.png" download="明白生活-头像.png">下载 1024px PNG</a>
+        </div>
+      </article>
+      <article data-option="C">
+        <div class="topline"><span>C / 直接用书名</span><span>原书辨识度高</span></div>
+        <img class="hero" src="branding/c-original-guide.png" alt="炭黑底，米白读字与橙色书签">
+        <div class="content">
+          <h2 class="long-name">高性价比人生指南</h2>
+          <p class="meaning">读过或听过原书的人更容易找到。名称较长，适合希望突出这一本书的定位。</p>
+          <div class="context"><p class="label">微信列表里的样子</p><div class="mini"><img class="round" src="branding/c-original-guide-256.png" alt="原书阅读圆形头像"><div><strong>高性价比人生指南</strong><small>阅读 · 检索 · 收藏</small></div></div></div>
+          <div class="samples"><img src="branding/c-original-guide-256.png" alt="32px 头像"><img class="tiny" src="branding/c-original-guide-256.png" alt="24px 头像"><span>字形醒目，偏出版风</span></div>
+          <button type="button" data-choice="C" aria-pressed="false">选 C · 原书名</button>
+          <a class="download" href="branding/c-original-guide.png" download="高性价比人生指南-头像.png">下载 1024px PNG</a>
+        </div>
+      </article>
+    </div>
+    <div class="bottom">
+      <p id="selection" role="status" aria-live="polite">推荐 A：名字说明用途，头像也与当前配色统一。</p>
+      <p class="note">候选名称尚未查重，是否可用以微信公众平台审核为准。原书名称与作者署名继续保留在阅读页和关于页。选择仅保存在此演示，不修改小程序配置。</p>
+      <a class="back" href="interaction-c.html">返回小程序交互演示 ↗</a>
+    </div>
+  </main>
+  <script>
+    const names = { A: '人生随查', B: '明白生活', C: '高性价比人生指南' };
+    document.querySelectorAll('[data-choice]').forEach(button => {
+      button.addEventListener('click', () => {
+        const choice = button.dataset.choice;
+        document.querySelectorAll('[data-option]').forEach(card => card.classList.toggle('selected', card.dataset.option === choice));
+        document.querySelectorAll('[data-choice]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+        document.getElementById('selection').textContent = `已选择 ${choice} · ${names[choice]}。在聊天里告诉我选择，我会按这个方向整理最终头像。`;
+      });
+    });
+  </script>
+</body>
+</html>

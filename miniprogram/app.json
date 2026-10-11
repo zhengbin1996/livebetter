@@ -2,8 +2,9 @@
   "pages": [
     "pages/index/index",
     "pages/search/index",
-    "pages/checkin/index",
+    "pages/favorites/index",
     "pages/about/index",
+    "pages/reading-pack/index",
     "pages/section-list/index",
     "pages/item-detail/index"
   ],
@@ -13,8 +14,7 @@
       "name": "read",
       "pages": [
         "pages/section-detail/index",
-        "pages/doc-read/index",
-        "pages/verify-read/index"
+        "pages/doc-read/index"
       ]
     },
     {
@@ -51,9 +51,10 @@
     "backgroundColor": "@tabBgColor",
     "borderStyle": "@tabBorderColor",
     "list": [
-      { "pagePath": "pages/index/index", "text": "今天" },
+      { "pagePath": "pages/index/index", "text": "首页" },
       { "pagePath": "pages/search/index", "text": "检索" },
-      { "pagePath": "pages/checkin/index", "text": "清单" },
+      { "pagePath": "pages/favorites/index", "text": "收藏" },
+      { "pagePath": "pages/reading-pack/index", "text": "阅读包" },
       { "pagePath": "pages/about/index", "text": "关于" }
     ]
   },

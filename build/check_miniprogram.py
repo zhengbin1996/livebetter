@@ -44,7 +44,7 @@ REQUIRE_RE = re.compile(r"""require\(\s*['"]([^'"]+)['"]\s*\)""")
 CALL_RE = re.compile(r"(?<![\w.])(\w+)\.(\w+)\s*\(")
 # 绑定 `const x = require('.../mod')` 到模块名 mod，以便校验 x 上调用的方法是否存在。
 # 同时匹配 '../utils/content' 与 './cloud'（utils 之间的互相引用也要查）。
-REQ_BIND_RE = re.compile(r"const\s+(\w+)\s*=\s*require\([^)]*/(\w+)[^)]*\)")
+REQ_BIND_RE = re.compile(r"const\s+(\w+)\s*=\s*require\(['\"][^'\"]*/([\w-]+)(?:\.js)?['\"]\)")
 
 problems: list[str] = []
 

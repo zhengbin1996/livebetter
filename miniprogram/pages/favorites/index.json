@@ -1,0 +1,4 @@
+{
+  "usingComponents": { "item-row": "../../components/item-row/index" },
+  "navigationBarTitleText": "收藏"
+}

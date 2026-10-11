@@ -1,15 +1,16 @@
+<view class="share-mode-note" wx:if="{{singlePage}}">朋友圈预览 · 点击下方“前往小程序”，阅读全文。</view>
 <view class="loading" wx:if="{{loading}}">正在取这篇…</view>
 
 <view class="empty" wx:elif="{{offline}}">
   <view class="h serif">这篇还没存到本机</view>
-  <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
-  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+  <view class="p">{{singlePage ? '请点击微信底部“前往小程序”，继续读取原文。' : '联网后重试，也可到「关于 → 离线与更新」下载全书。'}}</view>
+  <view class="btn btn--primary" wx:if="{{!singlePage}}" style="margin-top:36rpx" bindtap="onRetry">重试</view>
 </view>
 
 <view class="page page--flat" wx:else>
   <view class="dhead">
     <view class="dh-t serif">{{doc.title}}</view>
-    <view class="dh-m mono">长文 · {{doc.chars}} 字</view>
+    <view class="reading-heading"><view class="dh-m mono">专题长文</view><button class="reader-share" wx:if="{{!singlePage}}" open-type="share">分享给好友 ↗</button></view>
   </view>
 
   <view class="tocbar" bindtap="toggleToc" wx:if="{{toc.length}}">
@@ -40,3 +41,4 @@
 </view>
 
 <gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />
+<canvas wx:if="{{!singlePage}}" type="2d" id="share-cover-canvas" class="share-cover-canvas" aria-hidden="true" />

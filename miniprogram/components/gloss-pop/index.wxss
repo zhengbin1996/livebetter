@@ -1,7 +1,7 @@
 .mask {
   position: fixed;
   left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(25, 29, 28, .32);
+  background: rgba(0, 0, 0, .55);
   opacity: 0;
   visibility: hidden;
   transition: opacity .18s ease;
@@ -13,7 +13,7 @@
   position: fixed;
   left: 0; right: 0; bottom: 0;
   background: var(--card);
-  border-radius: 28rpx 28rpx 0 0;
+  border-radius: 4rpx 4rpx 0 0;
   border-top: 1rpx solid var(--line);
   padding: 20rpx 40rpx calc(48rpx + env(safe-area-inset-bottom));
   transform: translateY(102%);
@@ -36,8 +36,8 @@
 .head .term {
   font-family: var(--mono);
   font-size: 36rpx;
-  font-weight: 600;
-  color: var(--green);
+  font-weight: 700;
+  color: var(--accent);
 }
 .head .close {
   font-family: var(--mono);
@@ -46,8 +46,8 @@
 }
 
 .body {
-  font-family: var(--serif);
-  font-size: 29rpx;
+  font-family: var(--sans);
+  font-size: 30rpx;
   line-height: 1.85;
   color: var(--ink);
 }
@@ -59,6 +59,8 @@
 }
 .foot .path {
   font-family: var(--mono);
-  font-size: 21rpx;
+  font-size: 22rpx;
   color: var(--ink3);
 }
+
+.head .close { min-height: 88rpx; display: flex; align-items: center; padding-left: 24rpx; }

@@ -725,7 +725,7 @@ def main() -> int:
                  # 全文仍可在小程序里点开原文阅读。
                  "px": plain_lead(d["body"]),
                  "p": chars_for_search(d["body"])}
-                for d in long_docs + verify_docs
+                for d in long_docs if d["kind"] == "doc"
             ],
         }
         log(f"    {len(corpus['items'])} 条 + {len(corpus['docs'])} 篇")
@@ -744,6 +744,7 @@ def main() -> int:
 
     # ---- 7. 写产物
     log("[7/7] 写产物")
+    full_summaries = {item['sid']: item['plainText'] for section in sections for item in section['items']}
     # plainText 只在构建期用于引用锚点匹配，不进分片（省约 20% 体积）
     for sec in sections:
         for it in sec["items"]:
@@ -847,10 +848,7 @@ def main() -> int:
             "tierNote": mh.render(meta.get("tierNote", "")),
             "resources": meta.get("resources", []),
             "resourcesNote": mh.render(meta.get("resourcesNote", "")),
-            "howto": [
-                {"head": h["head"], "body": mh.render(h["body"])}
-                for h in meta.get("howto", [])
-            ],
+            "howto": [],
             "tags": {
                 "money": ["0", "少", "多"], "time": ["少", "中", "多"],
                 "will": ["否", "些", "是"], "benefit": ["大", "中", "小"],
@@ -946,6 +944,13 @@ def main() -> int:
                 encoding="utf-8",
             )
             log(f"    已同步内置索引 → {bundle}")
+            pick_ids = {item['sid'] for item in essentials['picks']}
+            pick_summaries = {item['sid']: full_summaries[item['sid']] for section in sections
+                              for item in section['items'] if item['sid'] in pick_ids}
+            (BUNDLE_DATA / 'pick-summaries.js').write_text(
+                'module.exports = ' + json.dumps({'version': version, 'items': pick_summaries},
+                                               ensure_ascii=False, separators=(',', ':')) + '\n',
+                encoding='utf-8')
             # 清掉历史遗留的 .json —— 它 require 不了，留着只会误导
             stale = BUNDLE_DATA / "essentials.json"
             if stale.exists():

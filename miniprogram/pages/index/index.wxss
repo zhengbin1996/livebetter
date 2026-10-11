@@ -1,107 +1,14 @@
-/* 离线状态条：常驻首屏顶部，三态用语义色点表示；下载中态换行出一条细进度条 */
-.ostrip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14rpx;
-  margin-top: 20rpx;
-  padding: 18rpx 24rpx;
-  background: var(--card);
-  border: 1rpx solid var(--line);
-  border-radius: 14rpx;
-}
-.ostrip .odot {
-  width: 12rpx; height: 12rpx; border-radius: 50%;
-  background: var(--ink3); flex: none;
-}
-.ostrip .odot.g { background: var(--green); }
-.ostrip .odot.a { background: var(--amber); }
-.ostrip .ostrip-t { flex: 1; font-size: 23rpx; color: var(--ink2); }
-.ostrip .ostrip-a { font-size: 22rpx; color: var(--green); flex: none; }
-/* 下载中态的就地进度条（宽 100% 借 flex-wrap 换到第二行） */
-.ostrip .obar {
-  flex-basis: 100%;
-  height: 6rpx;
-  border-radius: 3rpx;
-  background: var(--line2);
-  overflow: hidden;
-}
-.ostrip .obar .ofill {
-  height: 100%;
-  background: var(--green);
-  transition: width .25s ease;
-}
-
-/* 书封区 */
-.masthead { padding: 32rpx 0 8rpx; }
-.masthead .bk {
-  font-family: var(--serif);
-  font-size: 44rpx;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: .01em;
-  color: var(--ink);
-}
-.masthead .tag {
-  font-size: 25rpx;
-  color: var(--ink2);
-  line-height: 1.75;
-  margin-top: 14rpx;
-}
-.masthead .stats {
-  font-size: 21rpx;
-  color: var(--ink3);
-  margin-top: 18rpx;
-  letter-spacing: .01em;
-}
-
-/* ---------- 今天做一条（首屏主角） ---------- */
-.pick {
-  margin-top: 28rpx;
-  background: var(--card);
-  border: 1rpx solid var(--line);
-  border-left: 6rpx solid var(--green);
-  border-radius: 8rpx 20rpx 20rpx 8rpx;
-  padding: 28rpx 30rpx 24rpx;
-}
-.pick .pick-h {
+/* 紧凑书名栏：保留识别感，不让欢迎语挡住首屏内容 */
+.home-brand {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16rpx;
-  margin-bottom: 18rpx;
-}
-.pick .pick-k {
-  font-size: 21rpx;
-  color: var(--green);
-  letter-spacing: .08em;
-}
-.pick .pick-src { font-size: 19rpx; color: var(--ink3); }
-.pick .pick-t {
-  font-family: var(--serif);
-  font-size: 38rpx;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--ink);
-}
-.pick .pick-p {
-  font-size: 26rpx;
-  color: var(--ink2);
-  line-height: 1.7;
-  margin-top: 14rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-.pick .pick-cost { margin-top: 22rpx; }
-.pick .pick-acts {
-  display: flex;
   gap: 20rpx;
-  margin-top: 24rpx;
+  padding: 28rpx 0 14rpx;
+  border-bottom: 1rpx solid var(--line2);
 }
-.pick .pick-acts .btn { flex: 1; }
+.home-brand-name { min-width: 0; font-size: 30rpx; font-weight: 800; color: var(--ink); }
+.home-brand-meta { flex: none; font-size: 20rpx; color: var(--ink3); }
 
 /* 检索输入 */
 .searchbar .sinput {
@@ -116,7 +23,7 @@
 .glist {
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 20rpx;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 .grow { border-bottom: 1rpx solid var(--line2); }
@@ -125,7 +32,7 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 26rpx 28rpx;
+  padding: 28rpx 24rpx;
 }
 .ghead .gdot {
   width: 14rpx; height: 14rpx; border-radius: 50%; flex: none;
@@ -136,12 +43,12 @@
 .ghead .gdot.gray { background: var(--gray); }
 .ghead .gname {
   flex: 1;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink);
 }
-.ghead .gcount { font-size: 21rpx; color: var(--ink3); }
+.ghead .gcount { font-size: 22rpx; color: var(--ink3); }
 .ghead .gcaret { font-size: 26rpx; color: var(--ink3); width: 26rpx; text-align: right; }
 
 .gbody { padding: 0 0 8rpx; }
@@ -160,7 +67,7 @@
 }
 .gbody .prow .go {
   flex: none;
-  font-size: 21rpx;
+  font-size: 22rpx;
   color: var(--ink3);
   padding-top: 6rpx;
 }
@@ -173,14 +80,14 @@
   gap: 24rpx;
   background: var(--card);
   border: 1rpx solid var(--line);
-  border-radius: 16rpx;
+  border-radius: var(--radius);
   padding: 26rpx 28rpx;
   margin-bottom: 16rpx;
 }
 .rowcard .rc-l { flex: 1; min-width: 0; }
 .rowcard .rc-h {
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.45;
   color: var(--ink);
 }
@@ -191,4 +98,21 @@
   margin-top: 6rpx;
 }
 
-/* 下载中：进度显示已并入顶部状态条（.obar/.ofill），底部只留一张只读卡片 */
+.ghead:active, .prow:active, .rowcard:active { background: var(--gray-bg); }
+.ghead .gcaret { font-family: var(--sans); font-weight: 700; }
+.today-all { min-height: 88rpx; display: flex; align-items: center; font-size: 24rpx; color: var(--accent); font-weight: 700; }
+.home-search { padding: 28rpx; margin: 28rpx 0 56rpx; background: var(--gray-bg); border-radius: var(--radius); }
+.home-search-title { font-size: 24rpx; font-weight: 700; color: var(--ink2); }
+.home-search .searchbar { margin-top: 16rpx; }
+.home-module { padding: 28rpx; margin-bottom: 56rpx; border: 1rpx solid var(--line); border-top: 4rpx solid var(--ink); border-radius: var(--radius); background: var(--card); }
+.home-module-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; min-height: 64rpx; margin-bottom: 24rpx; }
+.home-module-title { display: flex; align-items: center; gap: 16rpx; min-width: 0; font-size: 32rpx; font-weight: 800; color: var(--ink); line-height: 1.4; }
+.home-module-number { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 48rpx; height: 48rpx; padding: 0 8rpx; background: var(--action); color: var(--on-action); font-family: var(--mono); font-size: 22rpx; font-weight: 700; }
+.home-module-note { margin: -8rpx 0 24rpx; color: var(--ink2); font-size: 24rpx; line-height: 1.7; }
+.home-module--recommend { padding-bottom: 12rpx; }
+.home-module--recommend .home-module-number { background: var(--highlight); color: var(--on-highlight); }
+.home-module--topics { background: var(--gray-bg); }
+.home-module--directory { border-top-color: var(--accent); }
+.home-module--directory .home-module-number { background: var(--accent-bg); color: var(--accent); }
+.home-module .rowcard { border: 0; border-radius: 0; border-bottom: 1rpx solid var(--line2); margin: 0; padding: 24rpx 0; }
+.home-module .rowcard:last-child { border-bottom: 0; padding-bottom: 0; }

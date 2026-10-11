@@ -4,10 +4,18 @@ const content = require('../../utils/content')
 const refs = require('../../utils/refs')
 const store = require('../../utils/store')
 const fmt = require('../../utils/fmt')
+const advice = require('../../utils/advice')
+const adviceContent = require('../../utils/advice-content')
+const favorites = require('../../utils/favorites')
+const share = require('../../utils/share')
+const shareCover = require('../../utils/share-cover')
 
 Page({
   data: {
     loading: true,
+    shareable: false,
+    originalOpen: false,
+    originalAvailable: false,
     offline: false,
     /** 内容版本对不上、分片里没有这一条（与 offline 区别对待，提示与出路都不同） */
     notFound: false,
@@ -28,9 +36,6 @@ Page({
     refsOut: [],
     refsIn: [],
     fav: false,
-    checkin: null,
-    /** 清单状态：none | today | later | done */
-    listState: 'none',
     labelMap: null,
     glossaryTerm: '',
     glossShow: false,
@@ -38,6 +43,8 @@ Page({
   },
 
   async onLoad(query) {
+    this.setData({ singlePage: share.singlePage() })
+    share.enable(false)
     // 存下来给「重试」用：小程序里**没有** this.options（那是别的框架的习惯），
     // 之前 onRetry 取 this.options 恒为 undefined → 重试时退化成空参数 →
     // 又落到 BAD_PARAM，再弹一次「这条建议没找到」。
@@ -47,8 +54,37 @@ Page({
     await this.load(this.query)
   },
 
+  onShow() {
+    favorites.show(this, function () {
+      if (this.data.item) {
+        this.setData({ fav: store.isFavorite(this.data.item.sid) })
+      }
+    })
+  },
+  onHide() { favorites.hide(this) },
+  onUnload() { favorites.hide(this) },
+  onReady() { if (this.shareCoverInfo) shareCover.prepare(this, this.shareCoverInfo) },
+  onShareAppMessage() { return this.data.shareable ? shareCover.attach(this, share.item(this.data.item)) : share.home() },
+  onShareTimeline() { return share.timeline(this.onShareAppMessage()) },
+  toggleOriginal() {
+    const originalOpen = !this.data.originalOpen
+    this.setData({ originalOpen }, () => {
+      if (!originalOpen) wx.pageScrollTo({ selector: '#original-toggle', duration: 180, offsetTop: -24 })
+    })
+  },
+
   async load(query) {
-    this.setData({ loading: true })
+    if (!this.data.item && query.sid) {
+      const cached = adviceContent.initial([query.sid])[0]
+      const fields = cached.fields || {}
+      const plainHtml = fields['说人话'] || cached.summaryHtml || String(cached.summary || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+      this.setData({
+        item: cached, sec: cached.sec, crumb: fmt.crumb(cached.sec, cached.num, ''),
+        plainHtml: refs.readableHtml(plainHtml), loading: false, offline: true, originalAvailable: false,
+        fav: store.isFavorite(cached.sid),
+      })
+    } else this.setData({ loading: !this.data.item })
     try {
       const { shard, item, error, stale } = await content.resolveItem(query)
       if (!item) {
@@ -64,27 +100,25 @@ Page({
       }
       const f = item.fields || {}
       const legend = (app.globalData.essentials || {}).legend || {}
-      const rec = store.getCheckin(item.sid)
       this.setData({
         loading: false,
         offline: false,
+        originalAvailable: true,
         notFound: false,
-        item,
+        item: advice.remember(Object.assign({}, item, { sec: shard.sec })),
         stale: !!stale,
         sec: shard.sec,
         secTitle: shard.secTitle,
         crumb: fmt.crumb(shard.sec, item.num, shard.secTitle),
-        plainHtml: f['说人话'] || '',
-        benefitHtml: f['收益'] || '',
-        costHtml: f['成本'] || '',
-        noteHtml: f['备注'] || '',
-        sourceHtml: f['来源'] || '',
+        plainHtml: refs.readableHtml(f['说人话']),
+        benefitHtml: refs.readableHtml(f['收益']),
+        costHtml: refs.readableHtml(f['成本']),
+        noteHtml: refs.readableHtml(f['备注']),
+        sourceHtml: refs.readableHtml(f['来源']),
         evidenceText: fmt.evidenceText(item.evidenceLevel),
         refsOut: item.refs || [],
         refsIn: item.refIn || [],
         fav: store.isFavorite(item.sid),
-        checkin: rec,
-        listState: this.listStateOf(rec),
       })
       // 等级与档位的释义来自 README 原文，保证和书上一致
       const iso = (legend.evidence || []).find((e) => e.level === item.evidenceLevel)
@@ -95,6 +129,12 @@ Page({
       // 分片没拿到（离线且未缓存）—— 与「内容里没这条」是两回事，别混成一句提示
       console.error('[item-detail] 取正文失败：', err)
       this.setData({ loading: false, offline: true, notFound: false })
+    } finally {
+      const shared = share.item(this.data.item)
+      const shareable = !this.data.notFound && shared.path !== share.home().path
+      this.setData({ shareable })
+      share.enable(shareable)
+      if (shareable && !this.data.singlePage) shareCover.prepare(this, shareCover.item(this.data.item))
     }
   },
 
@@ -124,6 +164,7 @@ Page({
   },
 
   onCellTap() {
+    if (share.requireFullApp()) return
     wx.navigateTo({ url: '/subpackages/mine/pages/glossary/index?legend=1' })
   },
 
@@ -143,63 +184,24 @@ Page({
   },
 
   goSection() {
+    if (share.requireFullApp()) return
     wx.navigateTo({ url: `/subpackages/read/pages/section-detail/index?sec=${this.data.sec}&num=${this.data.item.num}` })
   },
   goRef(e) {
     refs.goItem(e.currentTarget.dataset.sid)
   },
   goSec(e) {
+    if (share.requireFullApp()) return
     wx.navigateTo({ url: `/subpackages/read/pages/section-detail/index?sec=${e.currentTarget.dataset.sec}` })
   },
 
   onFav() {
-    const on = store.toggleFavorite(this.data.item.sid)
-    this.setData({ fav: on })
-    wx.showToast({ title: on ? '已收藏' : '已取消收藏', icon: 'none' })
-  },
-
-  listStateOf(rec) {
-    if (!rec) return 'none'
-    if (rec.done) return 'done'
-    return rec.plan === 'later' ? 'later' : 'today'
-  },
-
-  syncListState() {
-    const rec = store.getCheckin(this.data.item.sid)
-    this.setData({ checkin: rec, listState: this.listStateOf(rec) })
-  },
-
-  /** 主按钮：加进「今天」/ 从「今天」移出 / 把已完成的标回今天 */
-  onCheckin() {
-    const sid = this.data.item.sid
-    const s = this.data.listState
-    if (s === 'today') {
-      store.removeCheckin(sid)
-      wx.showToast({ title: '已移出清单', icon: 'none' })
-    } else if (s === 'done') {
-      store.setCheckin(sid, { done: false, plan: 'today' })
-      wx.showToast({ title: '已标回「今天做」', icon: 'none' })
-    } else {
-      store.setCheckin(sid, { done: false, plan: 'today' })
-      wx.showToast({ title: s === 'later' ? '已移到「今天做」' : '已加进清单 · 今天', icon: 'none' })
-    }
-    this.syncListState()
-  },
-
-  /** 次级动作：放到「稍后」（不做但先记着） */
-  onLater() {
-    const sid = this.data.item.sid
-    if (this.data.listState === 'later') {
-      store.removeCheckin(sid)
-      wx.showToast({ title: '已移出清单', icon: 'none' })
-    } else {
-      store.setCheckin(sid, { done: false, plan: 'later' })
-      wx.showToast({ title: '已放到「稍后」', icon: 'none' })
-    }
-    this.syncListState()
+    const saved = favorites.toggle(this.data.item)
+    if (saved !== null) this.setData({ fav: saved })
   },
 
   onCopySource() {
+    if (share.requireFullApp()) return
     const text = (this.data.item.fields || {})['来源'] || ''
     wx.setClipboardData({
       data: String(text).replace(/<[^>]+>/g, ''),
@@ -212,6 +214,7 @@ Page({
   },
 
   onSearch() {
+    if (share.requireFullApp()) return
     wx.switchTab({ url: '/pages/search/index' })
   },
 })

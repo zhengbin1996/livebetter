@@ -1,16 +1,17 @@
+<view class="share-mode-note" wx:if="{{singlePage}}">朋友圈预览 · 点击下方“前往小程序”，阅读全文与收藏。</view>
 <view class="loading" wx:if="{{loading}}">正在取这条…</view>
 
 <!-- 内容对不上：与「没存到本机」分开写，出路也不同（前者去检索，后者去下载） -->
 <view class="empty" wx:elif="{{notFound}}">
   <view class="h serif">这条内容对不上</view>
-  <view class="p">可能是上游更新后这条改了标题。去检索里按关键词找找，或退回上一页重进。</view>
+  <view class="p">内容更新后，这条建议可能改了标题。可以按关键词重新搜索，或返回上一页。</view>
   <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onSearch">去检索</view>
 </view>
 
-<view class="empty" wx:elif="{{offline}}">
+<view class="empty" wx:elif="{{offline && !item}}">
   <view class="h serif">这条还没存到本机</view>
-  <view class="p">连上网，或者到首页点「下载全书」之后再打开</view>
-  <view class="btn btn--primary" style="margin-top:36rpx" bindtap="onRetry">重试</view>
+  <view class="p">{{singlePage ? '请点击微信底部“前往小程序”，继续读取原文。' : '联网后重试，也可到「关于 → 离线与更新」下载全书。'}}</view>
+  <view class="btn btn--primary" wx:if="{{!singlePage}}" style="margin-top:36rpx" bindtap="onRetry">重试</view>
 </view>
 
 <block wx:else>
@@ -22,7 +23,12 @@
 
     <view class="dbread" bindtap="goSection">{{crumb}} ›</view>
 
-    <view class="dtitle">{{item.title}}</view>
+    <view class="dtitle">{{item.title || '正文未下载'}}</view>
+
+    <view class="stalenote" wx:if="{{offline}}">
+      {{plainHtml ? '已显示本机摘要，原文未下载' : '正文未下载'}}
+      <text class="copy" bindtap="onRetry"> · 重试</text>
+    </view>
 
     <view class="flags" wx:if="{{item.dispute || item.todo}}">
       <text class="flag flag--r" wx:if="{{item.dispute}}">争议</text>
@@ -32,8 +38,8 @@
     <!-- 说人话：全站唯一一处左侧强调边，视觉最高位。
          提到标题正下方 —— 用户打开一条建议，第一眼要看的是「结论是什么」，
          而不是成本签和等级标记。 -->
-    <view class="dplain">
-      <text class="k">说人话</text>
+    <view class="dplain" wx:if="{{plainHtml}}">
+      <text class="k">原文摘要</text>
       <view class="v">
         <mp-html
           class="mp-body"
@@ -45,6 +51,8 @@
     </view>
 
     <!-- 成本签：五格等宽表 -->
+    <view wx:if="{{originalAvailable}}" id="original-toggle" class="original-toggle" bindtap="toggleOriginal" aria-role="button">{{originalOpen ? '收起原文 ↑' : '查看原文 ↓'}}</view>
+    <block wx:if="{{originalAvailable && originalOpen}}">
     <view class="costwrap">
       <cost-tag
         tag="{{item.tag}}"
@@ -117,26 +125,21 @@
       </view>
     </view>
 
+    <view class="original-toggle" bindtap="toggleOriginal" aria-role="button">收起原文 ↑</view>
+    </block>
     <view class="disclaimer">
-      {{disclaimer}} 本条的归属：<text class="mono">{{item.sid}}</text>
+      {{disclaimer}}
     </view>
   </view>
 
-  <!-- 底部操作条：一个主按钮（今天做）+ 两个次级动作 -->
-  <view class="actbar">
-    <view class="act" bindtap="onFav">
-      <text class="ai {{fav ? 'on' : ''}}">{{fav ? '★' : '☆'}}</text>
+  <view class="actbar" wx:if="{{!singlePage}}">
+    <view class="act" bindtap="onFav" aria-role="button" aria-label="{{fav ? '取消收藏' : '收藏这条建议'}}">
+      <view class="ai icon icon--star {{fav ? 'on' : ''}}"></view>
       <text class="at {{fav ? 'on' : ''}}">{{fav ? '已收藏' : '收藏'}}</text>
     </view>
-    <view class="act" bindtap="onLater">
-      <text class="ai {{listState === 'later' ? 'on' : ''}}">{{listState === 'later' ? '✓' : '▸'}}</text>
-      <text class="at {{listState === 'later' ? 'on' : ''}}">{{listState === 'later' ? '在稍后' : '稍后'}}</text>
-    </view>
-    <view class="act act--primary" bindtap="onCheckin">
-      <text class="ai {{listState === 'today' || listState === 'done' ? 'on' : ''}}">{{listState === 'today' || listState === 'done' ? '✓' : '＋'}}</text>
-      <text class="at {{listState === 'today' || listState === 'done' ? 'on' : ''}}">{{listState === 'done' ? '今天做到了' : (listState === 'today' ? '在今天' : '今天做')}}</text>
-    </view>
+    <button class="act reader-share" wx:if="{{shareable}}" open-type="share">分享给好友 ↗</button>
   </view>
 
   <gloss-pop show="{{glossShow}}" term="{{glossaryTerm}}" bind:close="onGlossClose" />
 </block>
+<canvas wx:if="{{!singlePage}}" type="2d" id="share-cover-canvas" class="share-cover-canvas" aria-hidden="true" />

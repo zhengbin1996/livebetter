@@ -3,17 +3,18 @@ const content = require('../../../../utils/content')
 const fmt = require('../../../../utils/fmt')
 const store = require('../../../../utils/store')
 
+const CHECKED_AT_KEY = 'htb.content-checked-at'
+
 Page({
   data: {
-    info: null,
-    counts: {},
-    stats: null,
-    history: [],
+    contentDate: '未知日期',
+    checkedText: '尚未检查',
     cache: null,
     cacheText: '',
     busy: false,
     downBusy: false,
     progress: null,
+    cacheManagementOpen: false,
   },
 
   async onLoad() {
@@ -22,93 +23,92 @@ Page({
   },
 
   apply() {
-    const g = app.globalData
-    const e = g.essentials || {}
     const cache = content.localStats()
     const info = app.versionInfo()
+    let checkedAt = this.checkedAt || ''
+    if (!checkedAt) {
+      try { checkedAt = wx.getStorageSync(CHECKED_AT_KEY) || '' } catch (error) {}
+    }
     this.setData({
-      info,
-      counts: (g.manifest && g.manifest.counts) || e.counts || {},
-      stats: e.stats || null,
-      history: (store.readSync().history || []).map((h) =>
-        Object.assign({}, h, { atText: fmt.fmtDateTime(h.at) })
-      ),
       cache,
-      cacheText: `${cache.files} / ${cache.total} 节 · ${fmt.fmtBytes(cache.bytes)} / ${fmt.fmtBytes(cache.totalBytes)}`,
-      upText: info.upstreamDate ? fmt.fmtDateTime(info.upstreamDate) : '—',
-      genText: (g.manifest && g.manifest.generatedAt) ? fmt.fmtDateTime(g.manifest.generatedAt) : '—',
-      syncText: info.syncedAt ? fmt.fmtDateTime(info.syncedAt) : '尚未同步',
+      cacheText: `${cache.files} / ${cache.total} 份 · ${fmt.fmtBytes(cache.bytes)} / ${fmt.fmtBytes(cache.totalBytes)}`,
+      contentDate: fmt.fmtDate(info.upstreamDate) || '未知日期',
+      checkedText: fmt.fmtDateTime(checkedAt) || '尚未检查',
     })
   },
 
   async onSync() {
-    if (this.data.busy) return
+    if (this.data.busy || this.data.downBusy) return
     this.setData({ busy: true })
-    const r = await app.refresh()
-    this.setData({ busy: false })
-    this.apply()
-    if (r.ok) {
-      const m = app.globalData.manifest
-      if (m && m.prevIdMap) store.migrate(m.prevIdMap)
-      wx.showToast({ title: `已是 ${r.version}`, icon: 'none' })
-    } else {
-      wx.showToast({ title: r.reason || '同步失败', icon: 'none' })
+    try {
+      const result = await app.refresh()
+      if (result && result.ok) {
+        this.checkedAt = new Date().toISOString()
+        try { wx.setStorageSync(CHECKED_AT_KEY, this.checkedAt) } catch (error) {}
+        const manifest = app.globalData.manifest
+        if (manifest && manifest.prevIdMap) {
+          try { store.migrate(manifest.prevIdMap) } catch (error) {}
+        }
+        wx.showToast({ title: '内容已更新到最新', icon: 'none' })
+      } else {
+        wx.showToast({ title: '暂时无法检查更新，请联网后重试', icon: 'none' })
+      }
+    } catch (error) {
+      wx.showToast({ title: '暂时无法检查更新，请联网后重试', icon: 'none' })
+    } finally {
+      this.setData({ busy: false })
+      this.apply()
     }
   },
 
   async onDownload() {
-    if (this.data.downBusy) return
+    if (this.data.downBusy || this.data.busy) return
     this.setData({ downBusy: true, progress: { percent: 0, text: '准备中', size: '' } })
     try {
-      await content.downloadAll((p) => {
+      await content.downloadAll((progress) => {
         this.setData({
           progress: {
-            percent: p.percent,
-            text: `${p.done} / ${p.total} 节`,
-            size: `${fmt.fmtBytes(p.bytes)} / ${fmt.fmtBytes(p.totalBytes)}`,
+            percent: progress.percent,
+            text: `${progress.done} / ${progress.total} 份`,
+            size: `${fmt.fmtBytes(progress.bytes)} / ${fmt.fmtBytes(progress.totalBytes)}`,
           },
         })
       })
-      wx.showToast({ title: '已存到本机', icon: 'success' })
-    } catch (e) {
-      console.error('[download] 下载全书失败：', e)
+      wx.showToast({ title: '全书已存到本机', icon: 'success' })
+    } catch (error) {
       const tips = {
-        NO_MANIFEST: '云端内容还没同步好，稍后再试',
-        SYNCING: '云端内容同步中，稍后再试',
+        NO_MANIFEST: '内容尚未准备好，请先检查更新',
+        SYNCING: '内容正在更新，请稍后下载',
       }
-      wx.showToast({
-        title: (e && tips[e.code]) || '下载中断，可续传',
-        icon: 'none',
-      })
+      wx.showToast({ title: (error && tips[error.code]) || '下载中断，可联网后继续', icon: 'none' })
     } finally {
       this.setData({ downBusy: false, progress: null })
       this.apply()
     }
   },
 
+  toggleCacheManagement() {
+    this.setData({ cacheManagementOpen: !this.data.cacheManagementOpen })
+  },
+
   onPrune() {
-    const n = content.pruneOld()
+    if (this.data.downBusy || this.data.busy) return
+    const removed = content.pruneOld()
     this.apply()
-    wx.showToast({ title: n ? `清掉 ${n} 个旧版本` : '没有旧版本', icon: 'none' })
+    wx.showToast({ title: removed ? `已清理 ${removed} 个旧版本` : '没有旧版本缓存', icon: 'none' })
   },
 
   onClear() {
+    if (this.data.downBusy || this.data.busy) return
     wx.showModal({
       title: '清空本机内容缓存',
-      content: '收藏与打卡不受影响。',
-      success: (r) => {
-        if (!r.confirm) return
+      content: '收藏不受影响。清空后，离线阅读需要重新下载正文。',
+      success: (result) => {
+        if (!result.confirm || this.data.downBusy || this.data.busy) return
         content.clearAll()
         this.apply()
-        wx.showToast({ title: '已清空', icon: 'none' })
+        wx.showToast({ title: '已清空正文缓存', icon: 'none' })
       },
-    })
-  },
-
-  copyCommit() {
-    wx.setClipboardData({
-      data: (this.data.info && this.data.info.commit) || '',
-      success() { wx.showToast({ title: 'commit 已复制', icon: 'none' }) },
     })
   },
 })

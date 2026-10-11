@@ -9,6 +9,39 @@
 
 const REF_SCHEME = 'ref://'
 const GLOSS_SCHEME = 'gloss://'
+const reader = require('./reader-content')
+const share = require('./share')
+
+function internalDoc(href) {
+  let path
+  try { path = decodeURIComponent(href).split(/[?#]/)[0] } catch (error) { return null }
+  if (/^https?:/i.test(path)) {
+    const match = path.match(/^https?:\/\/(?:github\.com\/eternity4719\/HowToLiveBetter\/blob|raw\.githubusercontent\.com\/eternity4719\/HowToLiveBetter)\/[^/]+\/(.+)$/i)
+    if (!match) return null
+    path = match[1]
+  }
+  path = path.replace(/^(?:\.\.\/|\.\/)+/, '').replace(/^\//, '')
+  if (!/^docs\/.+\.md$/.test(path)) return null
+  const name = path.slice(5, -3)
+  const app = getApp()
+  const entry = reader.readableDocs(app && app.globalData.essentials).find((doc) => doc.name === name)
+  return entry ? { kind: 'doc', sid: entry.sid } : { kind: 'unavailable' }
+}
+
+function readableHtml(html) {
+  return String(html || '').replace(/(<a\b[^>]*href=["']([^"']+)["'][^>]*>)([\s\S]*?)(<\/a>)/gi, (match, opening, href, label, closing) => {
+    const info = classify(href)
+    if (info.kind !== 'doc' && info.kind !== 'unavailable') return match
+    const target = info.kind === 'doc' ? 'doc://' + info.sid : 'unavailable://content'
+    const routed = opening.replace(/(href=["'])[^"']+(["'])/i, (_, start, end) => start + target + end)
+    if (info.kind === 'doc' && /^(?:\.\.\/|\.\/)*docs\/.+\.md$/.test(label)) {
+      const app = getApp()
+      const entry = reader.readableDocs(app && app.globalData.essentials).find((doc) => doc.sid === info.sid)
+      label = entry.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+    return routed + label + closing
+  })
+}
 
 function secFromSid(sid) {
   if (!sid || sid[0] !== 's') return null
@@ -18,13 +51,25 @@ function secFromSid(sid) {
 
 function classify(href) {
   if (!href) return { kind: 'none' }
+  if (href.indexOf('doc://') === 0) {
+    const sid = href.slice(6)
+    const app = getApp()
+    return reader.readableDocs(app && app.globalData.essentials).some((doc) => doc.sid === sid) ? { kind: 'doc', sid } : { kind: 'unavailable' }
+  }
+  if (href.indexOf('unavailable://') === 0) return { kind: 'unavailable' }
   if (href.indexOf(REF_SCHEME) === 0) {
     const sid = href.slice(REF_SCHEME.length)
     return { kind: 'ref', sid, sec: secFromSid(sid) }
   }
   if (href.indexOf(GLOSS_SCHEME) === 0) {
-    return { kind: 'gloss', term: decodeURIComponent(href.slice(GLOSS_SCHEME.length)) }
+    let term = href.slice(GLOSS_SCHEME.length)
+    try { term = decodeURIComponent(term) } catch (error) {}
+    return { kind: 'gloss', term }
   }
+  const doc = internalDoc(href)
+  if (doc) return doc
+  if (/^https?:\/\/(?:github\.com\/eternity4719\/HowToLiveBetter|raw\.githubusercontent\.com\/eternity4719\/HowToLiveBetter)\//i.test(href) && /\.md(?:[?#]|$)/.test(href)) return { kind: 'unavailable' }
+  if (!/^https?:/i.test(href) && /\.md(?:[?#]|$)/.test(href)) return { kind: 'unavailable' }
   if (/^https?:/i.test(href)) return { kind: 'http', url: href }
   return { kind: 'other', href }
 }
@@ -47,6 +92,9 @@ function glossaryOf(term) {
 /** 统一处理一次点击，返回给页面决定要不要弹东西 */
 function handle(href, opts) {
   const info = classify(href)
+  if (['doc', 'ref', 'http'].indexOf(info.kind) >= 0 && share.requireFullApp()) return { kind: 'none' }
+  if (info.kind === 'doc') goDoc(info.sid, 'doc')
+  if (info.kind === 'unavailable') wx.showToast({ title: '此内容未在小程序提供', icon: 'none' })
   if (info.kind === 'http') {
     // 不用 web-view 打开 github / DOI（业务域名备案难通过），改复制链接
     wx.setClipboardData({
@@ -63,24 +111,31 @@ function handle(href, opts) {
 
 /** 跳到某条建议 */
 function goItem(sid) {
+  if (share.requireFullApp()) return
   if (!sid) return
   wx.navigateTo({ url: `/pages/item-detail/index?sid=${sid}` })
 }
 
-/** 跳到长文/核实记录：两类正文分属不同分包页，按 kind 分派 */
+/** 跳到专题长文 */
 function goDoc(sid, kind) {
+  if (share.requireFullApp()) return
   if (!sid) return
-  const page = kind === 'verify' ? 'verify-read' : 'doc-read'
-  wx.navigateTo({ url: `/subpackages/read/pages/${page}/index?sid=${sid}` })
+  if (kind && kind !== 'doc') {
+    wx.showToast({ title: '此内容未在小程序提供', icon: 'none' })
+    return
+  }
+  wx.navigateTo({ url: `/subpackages/read/pages/doc-read/index?sid=${sid}` })
 }
 
 /** 跳到某节阅读 */
 function goSection(sec) {
+  if (share.requireFullApp()) return
   wx.navigateTo({ url: `/subpackages/read/pages/section-detail/index?sec=${sec}` })
 }
 
 /** 跳到某节第 N 条：先开节，再让节内滚动到那一条（避免额外一次分片加载） */
 function goSectionAt(sec, num) {
+  if (share.requireFullApp()) return
   wx.navigateTo({ url: `/subpackages/read/pages/section-detail/index?sec=${sec}&num=${num}` })
 }
 
@@ -134,4 +189,5 @@ module.exports = {
   goSection,
   goSectionAt,
   highlight,
+  readableHtml,
 }
