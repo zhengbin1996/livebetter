@@ -942,6 +942,8 @@ def main() -> int:
                 + json.dumps(essentials, ensure_ascii=False, separators=(",", ":"))
                 + "\n",
                 encoding="utf-8",
+                # 显式 LF：Windows 上默认换行会把 \n 写成 \r\n，产出假 diff
+                newline="\n",
             )
             log(f"    已同步内置索引 → {bundle}")
             pick_ids = {item['sid'] for item in essentials['picks']}
@@ -950,7 +952,7 @@ def main() -> int:
             (BUNDLE_DATA / 'pick-summaries.js').write_text(
                 'module.exports = ' + json.dumps({'version': version, 'items': pick_summaries},
                                                ensure_ascii=False, separators=(',', ':')) + '\n',
-                encoding='utf-8')
+                encoding='utf-8', newline='\n')
             # 清掉历史遗留的 .json —— 它 require 不了，留着只会误导
             stale = BUNDLE_DATA / "essentials.json"
             if stale.exists():

@@ -36,7 +36,7 @@ if __name__ == '__main__':
     result = prepare()
     if '--write-demo' in sys.argv:
         destination = Path(__file__).resolve().parents[1] / 'design' / 'interaction-data.js'
-        destination.write_text('window.interactionData = ' + json.dumps(result['demo'], ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
+        destination.write_text('window.interactionData = ' + json.dumps(result['demo'], ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8', newline='\n')
         print(f"Generated demo: {len(result['demo']['items'])} items, {len(result['demo']['docs'])} documents")
     else:
         print(json.dumps(result, ensure_ascii=False, separators=(',', ':')))

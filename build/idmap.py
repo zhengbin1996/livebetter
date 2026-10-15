@@ -83,7 +83,10 @@ def build_map(prev: dict, cur: dict) -> tuple[dict[str, str], dict[str, str]]:
 def save(cur: dict, path: Path = IDS_FILE) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(cur, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+        json.dumps(cur, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+        # 显式 LF：Windows 上默认换行会把 \n 写成 \r\n，产出「整个文件都变了」的假 diff
+        newline="\n",
     )
 
 

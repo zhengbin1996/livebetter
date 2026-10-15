@@ -322,7 +322,7 @@ def sample_pdf(book, palette):
 
 def bundle_sample():
     sample = base64.b64encode((OUTPUT / 'sample.pdf').read_bytes()).decode('ascii')
-    (ROOT / 'miniprogram' / 'data' / 'reading-pack-sample.js').write_text('module.exports = ' + json.dumps(sample) + '\n', encoding='utf-8')
+    (ROOT / 'miniprogram' / 'data' / 'reading-pack-sample.js').write_text('module.exports = ' + json.dumps(sample) + '\n', encoding='utf-8', newline='\n')
 
 
 def main():
@@ -344,7 +344,7 @@ def main():
     }
     (OUTPUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     module = 'module.exports = ' + json.dumps(manifest, ensure_ascii=False, separators=(',', ':')) + '\n'
-    (ROOT / 'miniprogram' / 'data' / 'reading-pack.js').write_text(module, encoding='utf-8')
+    (ROOT / 'miniprogram' / 'data' / 'reading-pack.js').write_text(module, encoding='utf-8', newline='\n')
     demo = ROOT / 'design' / 'reading-pack'
     demo.mkdir(parents=True, exist_ok=True)
     for name in ('book.pdf', 'themes.pdf', 'sample.pdf'):
