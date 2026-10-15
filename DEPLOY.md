@@ -482,3 +482,80 @@ wx.cloud.callFunction({ name: 'syncIngest', data: { action: 'ping' } })
 
 > 更省事的办法：**根本不用测**。定时触发器每 10 分钟在服务端自己跑一次，
 > 去 云函数 → `syncIngest` → **日志** 看有没有记录即可 —— 有记录就是在同步，控制台能不能点无所谓。
+
+---
+
+## 附五：函数**能跑**，但抓不到 GitHub（日志里 `FETCH_MANIFEST` / `HTTP_TIMEOUT`）
+
+**症状**：云函数日志里**有完整执行记录**（有 `Duration`、有 `Response`），但返回
+
+```json
+{"ok": false, "error": "FETCH_MANIFEST", "message": "HTTP_TIMEOUT", "elapsedMs": 12197}
+```
+
+这跟附四是**完全不同的两层**：附四是「函数根本没被调起」；这里是「函数跑了，但**它自己出网失败**」。
+`elapsedMs ≈ 12000` 是钥匙 —— 正好撞在 `syncIngest/index.js` 的 `PER_REQUEST_MS = 12000`
+单请求上限上，说明请求**没有完成**（真 404/403 会立刻返回，不会等到 12 秒）。
+
+### 一步定性：跑网络体检
+
+`syncIngest` 有 **`{"action":"netcheck"}`** 分支（只发小的 GET，不碰同步逻辑、不碰数据库）。
+控制台「测试」传：
+
+```json
+{"action": "netcheck"}
+```
+
+它探测 4 个点，逐个报告 `reachable` / `ms` / `error`（可传 `perProbeMs` 改单点超时，默认 8000ms）：
+
+| 结果 | 含义 | 怎么办 |
+| --- | --- | --- |
+| `baidu` 也 `reachable:false` | 云函数**完全出不了网** | 环境侧问题，提工单 |
+| `baidu` 通，但 `github` / `release-assets` 不通 | 云出口到 **GitHub 资产 CDN** 不通或极慢 | 见下面「两条修法」 |
+| 全部 `reachable:true` | 网络没问题 | 是**超时太短**或**瞬时抖动**：直接重试即可。抓 manifest 已内置小重试（3 次 / 单次 6 秒），偶尔抖动会自愈 |
+
+> `reachable: true` **也包括返回 HTTP_403/404 的情况** —— 那说明 TCP+TLS+HTTP 已经走通，
+> 只是这个 URL 本身不给内容。**只有 HTTP_TIMEOUT / ENOTFOUND / ECONNRESET 才算「不通」。**
+
+### 为什么会这样：别凭域名下结论（两种结果都真实发生过）
+
+本项目原假设「云函数出站不受限，所以拿它当 GitHub 中继」。这个假设**在某些环境/时点成立、在另一些不成立**，
+不能靠猜：
+
+- Release 资产会被 302 重定向到 **`release-assets.githubusercontent.com`**（已实测确认）
+  —— 有的国内云出口到这个域名连不上或极慢；
+- 但也实测到**完全能通**的环境（见下）。
+
+所以**必须靠 netcheck 逐点看**，看到结果再决定是「重试」还是「换架构」。
+
+> **实测记录（2026-10-14，环境 `cloud1-d8gz1sda5f63732a8`，小程序「小云生活指南」）**：
+> `{"action":"netcheck"}` 四点**全部 `reachable: true`**：
+> `baidu` 44ms / `github`（探测点即**真实资产 URL**，**完整下载 manifest 28127 字节**）**1441ms** /
+> `release-assets` 1096ms（根路径 `HTTP_404`，按上面口径算**可达**）/ `api-github` 329ms。
+>
+> ⇒ **该环境云函数出站到 GitHub 资产 CDN 是通的**：先前那次 `FETCH_MANIFEST`/`HTTP_TIMEOUT`
+> （`elapsedMs≈12000`）是**瞬时抖动或冷启未就绪**，不是恒定不通。
+>
+> **但同一晚又实测到「通 / 断交替」** —— 22:41 netcheck 四点全通 → 23:11 同步抓到 manifest
+> 并开始搬分片 → **23:14 又撞满 12 秒超时**。⇒ 连通性是**间歇性**的：既不是恒通，也不是恒断。
+> **对抓 manifest 这一步已内置缓解**（见下），偶尔抖动会自愈；不必动 A/B 两条修法。
+
+### 已内置的缓解 + 两条可选修法
+
+**（已实现）抓 manifest 的小重试** —— 专治上面这种「间歇性抖动」：
+单次上限收紧到 **6 秒**（健康时只要 ~1.4 秒，6 秒还没完基本就是连接卡死），最多试 **3 次**；
+**只重试瞬时错**（超时 / 连接类 / 5xx / 429），`404` 这类立刻失败、不白等；
+**余量不足则提前放弃**，永不越过 deadline。
+理由：抓 manifest 是整轮的**第一步**，不重试的话一次抖动就白费整轮 —— 对定时触发器等于
+白等一个 10 分钟周期。可用环境变量 `MANIFEST_ATTEMPTS` / `MANIFEST_ATTEMPT_MS` 调整。
+`build/tests/test_sync_loop.js` 场景 7–10 锁住这四条行为。
+
+**A. 加一层国内可达的加速前缀**（小改动，先解燃眉之急）
+把 `assetUrl()` 的前缀做成**环境变量**（如 `ASSET_BASE`，默认 `https://github.com`），
+再换成某个能通的 GitHub 加速前缀。
+⚠️ 加速服务多为第三方，可能失效或限速 —— **直连必须仍是默认值**，出问题能一键切回。
+
+**B. 反过来推：让 CI 把内容送进云**（架构正解，推荐）
+`syncIngest` 已经有 HTTP 访问服务入口 + `SYNC_TOKEN` 校验。让 GitHub Actions 在产物上传后
+**主动 POST** 到云函数，把 `manifest` 与分片写进云存储 —— 云函数**从此不需要出网到 GitHub**，
+Actions 侧走的是 GitHub 自己的网络，必然通。改动量中等（Actions + 云函数各一段），但一劳永逸。

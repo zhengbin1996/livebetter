@@ -9,10 +9,13 @@
  *   于是这一轮搬完的进度一个字节都没落库，下一轮从零开始，
  *   症状是「反复超时、remaining 永远不降」。本地完全看不出来。
  *
- *   所以这里把 https 与 wx-server-sdk 都换成假的，验证两条不变量：
+ *   所以这里把 https 与 wx-server-sdk 都换成假的，验证三条不变量：
  *     1) 网络全通时能把 8 个分片搬完并原子翻转；
  *     2) **网络全卡死时函数仍会自己收尾返回**，用时明显小于平台硬超时
- *        （即：绝不会出现「跑满 60 秒被平台杀掉」）。
+ *        （即：绝不会出现「跑满 60 秒被平台杀掉」）；
+ *     3) **抓 manifest 带小重试**：瞬时抖动（连接类错）会重试并成功；404 这类
+ *        不可恢复的错立刻失败、不白等；重试次数封顶，且余量不足时提前放弃
+ *        —— 永不越过 deadline。
  */
 const Module = require('module')
 const path = require('path')
@@ -55,8 +58,12 @@ function bodyForUrl(url) {
 
 /* ------------------------------------------------ 假的 https */
 
-let MODE = 'fast' // fast | hang | hangShards
+let MODE = 'fast' // fast | hang | hangShards | manifestFlaky | manifest404
 let fetchCount = 0
+/** manifestFlaky 模式下，还要让 manifest 失败几次（模拟瞬时抖动） */
+let flakyLeft = 0
+/** manifest 被请求了几次（用来断言「有没有重试」/「重试了几次」） */
+let manifestFetches = 0
 
 const fakeHttps = {
   get(url, opts, cb) {
@@ -76,10 +83,36 @@ const fakeHttps = {
         setImmediate(() => handlers.error && handlers.error(err))
       },
     }
-    // hang        = 连 manifest 都拉不到（域名级不通）
-    // hangShards  = manifest 正常、分片拉不到（最真实：清单在 github.com，
-    //               资产走 objects.githubusercontent.com 这类 CDN，后者常出问题）
+    // hang         = 连 manifest 都拉不到（域名级不通）
+    // hangShards   = manifest 正常、分片拉不到（最真实：清单在 github.com，
+    //                资产走 objects.githubusercontent.com 这类 CDN，后者常出问题）
+    // manifestFlaky= manifest 前几次瞬时失败（连接类错），之后正常
+    //                —— 实测该云出口到 CDN 的连通性是间歇性的
+    // manifest404  = manifest 返回 404（**不可重试**的错，重试纯属白等）
     const isManifest = String(url).indexOf('manifest.json') >= 0
+    if (isManifest) manifestFetches += 1
+
+    if (MODE === 'manifest404' && isManifest) {
+      setImmediate(() => {
+        const res = {
+          statusCode: 404,
+          headers: {},
+          resume() {},
+          on() {
+            return res
+          },
+        }
+        cb(res)
+      })
+      return req
+    }
+    if (MODE === 'manifestFlaky' && isManifest && flakyLeft > 0) {
+      flakyLeft -= 1
+      // 用「连接被重置」这种**瞬时**错误，而不是干等超时 —— 测试要快
+      const err = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })
+      setImmediate(() => req.destroy(err))
+      return req
+    }
     if (MODE === 'hang' || (MODE === 'hangShards' && !isManifest)) return req
     const body = bodyForUrl(String(url))
     setImmediate(() => {
@@ -142,7 +175,8 @@ function makeEnv() {
 const origLoad = Module._load
 
 function load(env, envVars) {
-  for (const k of ['SOURCE_REPO', 'BUDGET_MS', 'FUNCTION_TIMEOUT_MS', 'SYNC_TOKEN', 'RELEASE_TAG']) {
+  for (const k of ['SOURCE_REPO', 'BUDGET_MS', 'FUNCTION_TIMEOUT_MS', 'SYNC_TOKEN', 'RELEASE_TAG',
+    'MANIFEST_ATTEMPTS', 'MANIFEST_ATTEMPT_MS']) {
     delete process.env[k]
   }
   Object.assign(process.env, envVars)
@@ -219,6 +253,106 @@ function load(env, envVars) {
     await mod.main({})
     const dt = Date.now() - t0
     ok('预算写超大：仍然不会撞上平台硬超时', dt < HARD, dt + 'ms vs ' + HARD + 'ms')
+  }
+
+  /* 场景 5：netcheck —— 网络体检分支的判定口径。这个分支存在的意义就是回答
+     「日志说 FETCH_MANIFEST / HTTP_TIMEOUT，到底是云函数出不去，还是别的」。 */
+  {
+    const env = makeEnv()
+    MODE = 'fast'
+    const mod = load(env, { SOURCE_REPO: 'me/repo' })
+    const r = await mod.main({ action: 'netcheck' })
+    ok('netcheck：网络正常时 4 个探测点都 reachable',
+      !!r && r.netcheck === true && r.results.length === 4 &&
+      r.results.every((x) => x.reachable === true), JSON.stringify(r && r.results))
+    ok('netcheck：github 探测点打的是真实资产 URL（走完整重定向链）',
+      !!(r && r.results) && r.results.some((x) => x.name === 'github' && x.url.indexOf('/releases/download/') >= 0),
+      JSON.stringify(r && r.results && r.results.map((x) => x.url)))
+  }
+
+  /* 场景 6：出站全断时，netcheck 必须如实报「不可达」且不能挂死 */
+  {
+    const env = makeEnv()
+    MODE = 'hang'
+    const mod = load(env, { SOURCE_REPO: 'me/repo' })
+    const t0 = Date.now()
+    const r = await mod.main({ action: 'netcheck', perProbeMs: 1500 })
+    const dt = Date.now() - t0
+    ok('netcheck：出站断时全部 reachable:false 且带 HTTP_TIMEOUT',
+      !!(r && r.results) && r.results.every((x) => x.reachable === false && String(x.error).indexOf('HTTP_TIMEOUT') >= 0),
+      JSON.stringify(r && r.results))
+    ok('netcheck：4 个探测点总用时受 perProbeMs 约束（< 10 秒）', dt < 10000, dt + 'ms')
+  }
+
+  /* 场景 7：manifest 前两次瞬时失败、第三次成功 —— 必须重试成功并把整轮跑完。
+     现实依据：该云出口到 GitHub 资产 CDN 的连通性是**间歇性**的，而抓 manifest
+     是整轮的**第一步**；不重试的话一次抖动就白费整轮（对定时器 = 白等 10 分钟）。 */
+  {
+    const env = makeEnv()
+    MODE = 'manifestFlaky'
+    flakyLeft = 2
+    manifestFetches = 0
+    const mod = load(env, { SOURCE_REPO: 'me/repo', BUDGET_MS: '40000', FUNCTION_TIMEOUT_MS: '60000' })
+    const r = await mod.main({})
+    ok('manifest 抖动：重试后照常搬完并原子翻转',
+      r && r.ok === true && r.done === true && r.shards === 8, JSON.stringify(r))
+    ok('manifest 抖动：确实重试了（共请求 3 次）', manifestFetches === 3, manifestFetches)
+  }
+
+  /* 场景 8：manifest 返回 404（**不可重试**）—— 必须立刻失败，不许白等重试 */
+  {
+    const env = makeEnv()
+    MODE = 'manifest404'
+    manifestFetches = 0
+    const mod = load(env, { SOURCE_REPO: 'me/repo', BUDGET_MS: '40000', FUNCTION_TIMEOUT_MS: '60000' })
+    const t0 = Date.now()
+    const r = await mod.main({})
+    const dt = Date.now() - t0
+    ok('manifest 404：报 FETCH_MANIFEST 且带 HTTP_404（返回形态不变）',
+      r && r.error === 'FETCH_MANIFEST' && String(r.message).indexOf('HTTP_404') >= 0, JSON.stringify(r))
+    ok('manifest 404：只请求 1 次（不可恢复的错不重试）', manifestFetches === 1, manifestFetches)
+    ok('manifest 404：立刻返回，没有白等', dt < 3000, dt + 'ms')
+  }
+
+  /* 场景 9：manifest 一直瞬时失败 —— 重试次数必须有上限，且绝不把预算耗光。
+     MANIFEST_ATTEMPT_MS 压到下限 1500，让每次尝试「卡住 1.5 秒」，测试才跑得快。 */
+  {
+    const env = makeEnv()
+    MODE = 'hang'
+    manifestFetches = 0
+    const BUDGET = 40000
+    const mod = load(env, {
+      SOURCE_REPO: 'me/repo', BUDGET_MS: String(BUDGET), FUNCTION_TIMEOUT_MS: '60000',
+      MANIFEST_ATTEMPT_MS: '1500',
+    })
+    const t0 = Date.now()
+    const r = await mod.main({})
+    const dt = Date.now() - t0
+    ok('manifest 持续抖动：仍报 FETCH_MANIFEST + HTTP_TIMEOUT（返回形态不变）',
+      r && r.error === 'FETCH_MANIFEST' && String(r.message).indexOf('HTTP_TIMEOUT') >= 0, JSON.stringify(r))
+    ok('manifest 持续抖动：重试次数封顶在 3 次', manifestFetches === 3, manifestFetches)
+    ok('manifest 持续抖动：用时远小于时间预算（没把预算耗在重试上）',
+      dt < 10000 && dt < BUDGET, dt + 'ms vs 预算 ' + BUDGET + 'ms')
+  }
+
+  /* 场景 10：预算太小、余量不够再试一次 —— 必须**提前放弃**（只试 1 次），
+     绝不能因为「想重试」而把预算吃穿。 */
+  {
+    const env = makeEnv()
+    MODE = 'hang'
+    manifestFetches = 0
+    const BUDGET = 2000
+    const mod = load(env, {
+      SOURCE_REPO: 'me/repo', BUDGET_MS: String(BUDGET), FUNCTION_TIMEOUT_MS: '60000',
+      MANIFEST_ATTEMPT_MS: '1500',
+    })
+    const t0 = Date.now()
+    const r = await mod.main({})
+    const dt = Date.now() - t0
+    ok('余量不足：报 FETCH_MANIFEST + HTTP_TIMEOUT',
+      r && r.error === 'FETCH_MANIFEST' && String(r.message).indexOf('HTTP_TIMEOUT') >= 0, JSON.stringify(r))
+    ok('余量不足：只试 1 次就放弃（不硬撑）', manifestFetches === 1, manifestFetches)
+    ok('余量不足：不越过时间预算', dt < BUDGET + 2000, dt + 'ms vs ' + BUDGET + 'ms')
   }
 
   console.log(failed ? `\n${failed} 项失败` : '\n全部通过')

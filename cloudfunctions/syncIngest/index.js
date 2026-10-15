@@ -34,6 +34,10 @@
  *     并发 4 路，否则一轮只能搬 40 多个、要 5 轮以上才追平。
  *   * **先写暂存、后翻指针**。只有全部就位才更新 `manifest/current`，
  *     中途失败时线上版本完全不受影响。
+ *   * **抓 manifest 带小重试**。云出口到资产 CDN 的连通性是**间歇性**的，而抓 manifest
+ *     是整轮的**第一步** —— 一次抖动不该白费整轮（对定时器 = 白等一个 10 分钟周期）。
+ *     故单次上限收紧到 6 秒、最多试 3 次，**余量不足则提前放弃**（绝不越过 deadline）。
+ *     只重试**瞬时**错（超时 / 连接类 / 5xx / 429），404 这类立刻失败、不白等。
  *   * **partial 会被重试**。若有个别分片始终失败，仍然翻转（避免永远同步不上），
  *     但把 syncStatus 标成 partial；下一次调用会重新尝试这些分片，
  *     因为「跳过」的条件是 syncStatus === 'ok'。
@@ -80,6 +84,19 @@ const PER_REQUEST_MS = 12000
 const CONCURRENCY = 4 // 单线程搬 183 个分片要 5 轮以上，并发 4 路大约 2 轮就能追平
 const CHECKPOINT_EVERY = 5 // 每搬完几个分片就把进度落库，被硬杀时最多丢这几片
 
+// 抓 manifest 的小重试。
+// 为什么要有：该云出口到 GitHub 资产 CDN 的连通性是**间歇性**的 —— 实测同一环境同
+// 一晚「通 / 断交替」（14:04 超时 → 22:41 四点全通 → 23:11 成功 → 23:14 又超时）。
+// 而抓 manifest 是整轮的**第一步**：不重试的话，一次抖动就白费整轮；对定时触发器
+// 尤其贵 —— 等于白等一个 10 分钟周期。重试成本极低（就多一次 ~28KB 的 GET）。
+// 单次上限（6000）比分片（12000）小得多：健康时 manifest 只要 ~1.4 秒，
+// 6 秒还没完基本就是连接卡死了，早放弃早重试，别把上限耗在一次垂死连接上。
+const MANIFEST_ATTEMPT_MS = Number(process.env.MANIFEST_ATTEMPT_MS || 6000)
+const MANIFEST_ATTEMPTS = Math.max(1, Number(process.env.MANIFEST_ATTEMPTS || 3))
+const MANIFEST_RETRY_GAP_MS = 300
+// fetchBuffer 里给单次请求留的最小值，重试前用它判断「还有没有余量再试一次」
+const MIN_REQUEST_MS = 1500
+
 /* ---------------------------------------------------------------- HTTP */
 
 /**
@@ -89,15 +106,18 @@ const CHECKPOINT_EVERY = 5 // 每搬完几个分片就把进度落库，被硬�
  * 这样任何一个卡住的请求都不可能把函数拖过 deadline。
  * 另外加了硬定时器 —— `req.setTimeout` 只在**空闲**时触发，
  * 一个慢慢滴数据、始终不空闲的连接照样能耗死预算，所以必须再加一层总时长兜底。
+ * perReqMs 可选：覆盖单次上限（默认 PER_REQUEST_MS）。抓 manifest 时传更小的值，
+ * 因为它小（~28KB）且健康时只要 1.4 秒，卡住就该早点放弃、好让重试有机会。
  */
-function fetchBuffer(url, deadlineTs, redirects) {
+function fetchBuffer(url, deadlineTs, redirects, perReqMs) {
   const hop = redirects || 0
+  const cap = Number(perReqMs) > 0 ? Number(perReqMs) : PER_REQUEST_MS
   return new Promise((resolve, reject) => {
     if (hop > MAX_REDIRECT) {
       reject(new Error('TOO_MANY_REDIRECTS'))
       return
     }
-    const left = Math.max(1500, Math.min(PER_REQUEST_MS, (deadlineTs || Date.now() + PER_REQUEST_MS) - Date.now()))
+    const left = Math.max(MIN_REQUEST_MS, Math.min(cap, (deadlineTs || Date.now() + cap) - Date.now()))
     const mod = url.indexOf('https:') === 0 ? https : http
     const req = mod.get(
       url,
@@ -106,7 +126,7 @@ function fetchBuffer(url, deadlineTs, redirects) {
         if ([301, 302, 303, 307, 308].indexOf(res.statusCode) >= 0 && res.headers.location) {
           res.resume()
           clearTimeout(hardTimer)
-          resolve(fetchBuffer(new URL(res.headers.location, url).toString(), deadlineTs, hop + 1))
+          resolve(fetchBuffer(new URL(res.headers.location, url).toString(), deadlineTs, hop + 1, cap))
           return
         }
         if (res.statusCode !== 200) {
@@ -151,6 +171,57 @@ function withTimeout(promise, ms, code) {
   })
 }
 
+/** 等待 ms 毫秒（重试用） */
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, Math.max(0, ms)))
+}
+
+/**
+ * 这个下载错误值得重试吗？
+ * 只重试**瞬时**故障：超时 / 连接类错误 / 5xx / 429。
+ * 明确重试也没用的（404 这类 4xx、重定向过多、结构不对）直接放行，免得白等一轮。
+ */
+function isTransient(err) {
+  const code = String((err && err.code) || '')
+  if (/^(ETIMEDOUT|ESOCKETTIMEDOUT|ECONNRESET|ECONNREFUSED|EPIPE|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|ENETUNREACH)$/.test(code)) {
+    return true
+  }
+  const msg = String((err && err.message) || err || '')
+  if (/HTTP_TIMEOUT|socket hang up|ETIMEDOUT|ECONNRESET|ENOTFOUND|EAI_AGAIN/i.test(msg)) return true
+  const m = /^HTTP_(\d{3})\b/.exec(msg)
+  if (m) {
+    const status = Number(m[1])
+    return status === 408 || status === 429 || status >= 500
+  }
+  return false
+}
+
+/**
+ * 抓远端 manifest，带小重试（为什么要有：见 MANIFEST_* 常量处的说明）。
+ * 只重试瞬时错；并且**永不越过 deadline** —— 余量不够就直接放弃，宁可这一轮报
+ * FETCH_MANIFEST，也别把整个预算耗在重试上（下一轮会从头再来，没有副作用）。
+ * 失败时抛**最后一次的原始错误**，保持既有的 `FETCH_MANIFEST` + `HTTP_TIMEOUT` 返回形态不变。
+ */
+async function fetchManifest(deadlineTs) {
+  let lastErr
+  for (let attempt = 1; attempt <= MANIFEST_ATTEMPTS; attempt += 1) {
+    try {
+      return await fetchBuffer(assetUrl('manifest.json'), deadlineTs, 0, MANIFEST_ATTEMPT_MS)
+    } catch (e) {
+      lastErr = e
+      const retriable = isTransient(e)
+      const left = deadlineTs - Date.now()
+      if (!retriable || attempt >= MANIFEST_ATTEMPTS || left < MIN_REQUEST_MS + MANIFEST_RETRY_GAP_MS) {
+        if (!retriable) console.log('[sync] manifest 请求失败且不可重试：' + (e && e.message))
+        break
+      }
+      console.log(`[sync] manifest 第 ${attempt} 次失败（${e && e.message}），余 ${left}ms，重试`)
+      await sleep(Math.min(MANIFEST_RETRY_GAP_MS, Math.max(0, left - MIN_REQUEST_MS)))
+    }
+  }
+  throw lastErr
+}
+
 /** Release 资产名：把路径里的斜杠换成双下划线，book/01.json → book__01.json */
 function assetName(relPath) {
   return relPath.replace(/\//g, '__')
@@ -192,6 +263,40 @@ async function run(ev, viaHttp) {
     }
   }
 
+  // 网络体检：只发**小的 GET**，不下大文件、不碰数据库。**专门用来把「函数被调起」之后的
+  // 下一层故障问清楚 ** —— 现象是「日志里明明有执行记录，但同步报 FETCH_MANIFEST / HTTP_TIMEOUT」：
+  //   * 某个域名 `reachable:false` 且 error 是 HTTP_TIMEOUT / ENOTFOUND / ECONNRESET
+  //     ⇒ 云函数**出站被挡**。国内云出口连不上 GitHub 资产 CDN
+  //     （`release-assets.githubusercontent.com`）是常见诱因，不是代码问题。
+  //   * 全部都 `reachable:true`（哪怕 HTTP_403/404 —— TCP+TLS+HTTP 已经走通，只是这个 URL
+  //     本身不给内容）⇒ 网络没问题，同步失败另有原因（例如单请求超时太短）。
+  // 和 ping 一样是只读的，随时可以从控制台或小程序端调用。
+  if (ev.action === 'netcheck') {
+    const per = Math.max(1500, Math.min(20000, Number(ev.perProbeMs) || 8000))
+    const probes = [
+      ['baidu', 'https://www.baidu.com/'], // 对照组：连它都不通说明整个出站都断了
+      ['github', SOURCE_REPO ? assetUrl('manifest.json') : 'https://github.com/'],
+      ['release-assets', 'https://release-assets.githubusercontent.com/'],
+      ['api-github', 'https://api.github.com/'],
+    ]
+    const results = []
+    for (let i = 0; i < probes.length; i += 1) {
+      const name = probes[i][0]
+      const url = probes[i][1]
+      const t0 = Date.now()
+      try {
+        const buf = await fetchBuffer(url, Date.now() + per)
+        results.push({ name, url, reachable: true, bytes: buf.length, ms: Date.now() - t0 })
+      } catch (e) {
+        const msg = String((e && e.message) || e)
+        // HTTP_4xx/5xx 说明网络已通，只是这个 URL 本身不可直接取 —— 仍算「可达」
+        const reachable = /^HTTP_\d+/.test(msg)
+        results.push({ name, url, reachable, error: msg, ms: Date.now() - t0 })
+      }
+    }
+    return { ok: true, netcheck: true, perProbeMs: per, results }
+  }
+
   if (!SOURCE_REPO) {
     return { ok: false, error: 'NO_SOURCE_REPO', message: '请在云函数环境变量里设置 SOURCE_REPO' }
   }
@@ -208,9 +313,11 @@ async function run(ev, viaHttp) {
   const deadline = adapt.planDeadline(started, budget, HARD_TIMEOUT_MS, RESERVE_MS)
 
   // 1) 拉远端 manifest（发布在上游 Release 里的公开资产，不需要任何密钥）
+  //    走 fetchManifest 带小重试 —— 云出口到资产 CDN 的连通性是间歇性的，
+  //    而这是整轮的第一步，一次抖动不该白费一整轮（对定时器 = 白等 10 分钟）。
   let remote
   try {
-    const buf = await fetchBuffer(assetUrl('manifest.json'), deadline)
+    const buf = await fetchManifest(deadline)
     remote = JSON.parse(buf.toString('utf8'))
   } catch (e) {
     return { ok: false, error: 'FETCH_MANIFEST', message: String(e.message || e), elapsedMs: Date.now() - started }
