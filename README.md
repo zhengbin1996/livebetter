@@ -131,7 +131,12 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
 ### 1. 建云开发环境
 
 微信开发者工具里开通云开发，拿到环境 ID，填进 `miniprogram/config.js` 的 `CLOUD_ENV`
-（只有一个环境可以留空）。
+（只有一个环境可以留空 —— **当前仓库里就是留空状态**）。
+
+> ⚠️ 云开发环境**归属开放平台账号，不归属 AppID**。本仓库的 `CLOUD_ENV`
+> 已随 AppID 变更（`wx9db0838102248c71` 与旧 AppID **不同主体**）改为新主体下新建的环境
+> `cloud1-d8gz1sda5f63732a8`；旧环境无法继承。跨主体的整套云侧重做清单见
+> **[DEPLOY.md 附零](./DEPLOY.md)**。
 
 ### 2. 建数据库集合
 
@@ -183,7 +188,8 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
 
 ### 6. 配 AppID 与小程序名称
 
-- `project.config.json` 的 `appid` 目前是 `touristappid`（占位），换成你自己的。
+- `project.config.json` 的 `appid` 已填为真实 AppID（`wx9db0838102248c71`），无需再改。
+  换 AppID 时注意**云开发环境不跟着走**：见 [DEPLOY.md](./DEPLOY.md) 阶段 1 的注意事项。
 - 名称待定，改名只动两处：`miniprogram/config.js` 的 `APP_NAME`
   与 `miniprogram/app.json` 的 `window.navigationBarTitleText`。
   **`BOOK_NAME` 不要跟着改**——它是 CC BY 4.0 要求的书名署名。

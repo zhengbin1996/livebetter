@@ -3,7 +3,7 @@
     "cloudfunctionRoot": "cloudfunctions/",
     "projectname": "HowToLiveBetter",
     "description": "高性价比人生指南 · 微信小程序（内容源：github.com/eternity4719/HowToLiveBetter，CC BY 4.0）",
-    "appid": "wx0bcbaa8e93eaefc5",
+    "appid": "wx9db0838102248c71",
     "compileType": "miniprogram",
     "libVersion": "3.17.4",
     "setting": {

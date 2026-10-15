@@ -13,7 +13,12 @@ module.exports = {
   // 云开发环境 ID。留空则用默认环境（只有一个环境时可留空）。
   // ⚠️ 这里必须是**环境 ID**（形如 cloud1-xxxx），不是 AppID（wx 开头）——
   //    填错的症状是不报错，但云调用全部静默失败、syncState 永远是 offline。
-  CLOUD_ENV: 'cloud1-d8gc8etl2e047a62f',
+  //
+  // 2026-10-14：AppID 换成 `wx9db0838102248c71`（**与旧 AppID 不是同一主体**）。
+  // 云开发环境归属「开放平台账号」，跨主体**无法关联**，所以旧环境
+  // `cloud1-d8gc8etl2e047a62f` 对本小程序完全不可用，已换为新主体下新建的环境。
+  // ⚠️ 两个 ID 只有中段几位不同（d8gc8etl2e047a62f / d8gz1sda5f63732a8），粘贴时别拿错。
+  CLOUD_ENV: 'cloud1-d8gz1sda5f63732a8',
 
   REPO_URL: 'https://github.com/eternity4719/HowToLiveBetter',
   LICENSE_NAME: 'CC BY 4.0',

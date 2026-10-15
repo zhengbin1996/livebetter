@@ -21,8 +21,14 @@
 
 ## 阶段 1 · 微信侧
 
-- [x] `project.config.json` → `appid` = `wx0bcbaa8e93eaefc5`
-- [x] `miniprogram/config.js` → `CLOUD_ENV` = `cloud1-d8gc8etl2e047a62f`（**环境 ID**，不是 AppID）
+- [x] `project.config.json` → `appid` = `wx9db0838102248c71`
+
+  > ⚠️ **换 AppID 不会把云开发环境一起带过来**——环境归属开放平台账号，不归属 AppID。
+  > - 新旧 AppID **同属一个主体** ⇒ 在云开发控制台把该小程序**关联**到
+  >   `cloud1-d8gc8etl2e047a62f`（环境管理 → 环境设置 → 关联小程序/公众号）即可继续复用。
+  > - **跨主体（本项目的实际情况）⇒ 整套云侧重做，清单见 [附零](#附零跨主体换-appid云侧整套重建)。**
+  >   `CLOUD_ENV` 填错或指向无权限的旧环境的症状是**不报错、云调用全部静默失败**。
+- [x] `miniprogram/config.js` → `CLOUD_ENV` = `cloud1-d8gz1sda5f63732a8`（**环境 ID**，不是 AppID）
 - [ ] 开发者工具打开项目 → 顶部「云开发」→ 开通（首次需同意协议；选按量付费，有免费额度）
 - [ ] 开发者工具左侧 `cloudfunctions/` 右键 → 云开发环境 → 选中刚建的环境  
   （文件夹名显示「未指定环境」时必做，否则云函数列表为空）
@@ -210,8 +216,11 @@ curl -i -X POST 'https://<你复制的地址>' \
 参数填 **`{"action":"ping"}`**：
 
 ```json
-{"ok":true,"pong":true,"envId":"cloud1-d8gc8etl2e047a62f","sourceRepo":null,"budgetMs":40000}
+{"ok":true,"pong":true,"envId":"cloud1-d8gz1sda5f63732a8","sourceRepo":null,"budgetMs":40000}
 ```
+
+> `envId` 是函数**自己认为**它在哪个环境（取 `TCB_ENV`）。对上 `config.js` 里的
+> `CLOUD_ENV` 才算没串环境；`sourceRepo: null` 说明环境变量还没配（走附零第 7 步）。
 
 - **回 pong** → 「函数能被调起」这一层是通的，继续做 ②。
 - **报平台错**（`ret:-3 system error` / `scf/Invoke` 那类，函数日志里什么都没有）
@@ -288,12 +297,53 @@ curl -i -X POST 'https://<你复制的地址>' \
 
 ---
 
+## 附零：跨主体换 AppID（云侧整套重建）
+
+**适用**：新 AppID 与旧 AppID **不属于同一个主体/账号**。
+2026-10-14 换成 `wx9db0838102248c71` 属于此情况（旧值 `wx0bcbaa8e93eaefc5`）。
+
+关键前提：**云开发环境归属「开放平台账号」，不归属 AppID，跨主体不能关联**。
+所以旧环境 `cloud1-d8gc8etl2e047a62f` 对新 AppID 完全不可用 —— 不是「没配对」，
+是根本无权限。此时 `CLOUD_ENV` 填旧值 = 云调用全部静默失败、`syncState` 永远 `offline`。
+必须在新主体下新建环境并重做云侧：
+
+- [ ] 1. 用**新主体账号**登录开发者工具打开本项目（`appid` 已改好）→ 顶部「云开发」→
+         开通 → 新建环境 → 记下**环境 ID**（`cloud1-` 开头）
+- [ ] 2. `miniprogram/config.js` 的 `CLOUD_ENV` 改成新环境 ID —— **已填 `cloud1-d8gz1sda5f63732a8`**
+         （只有一个环境时留空也行；显式填更稳。⚠️ 新旧 ID 只差中段几位，别粘错）
+- [ ] 3. 左侧 `cloudfunctions/` 右键 → 云开发环境 → 选中**新环境**
+         （不选的话函数列表为空，部署等于部署到空气里）
+- [ ] 4. 依次「上传并部署：云端安装依赖」4 个函数：
+         `getVersion` / `searchServer` / `getUserData` / `syncIngest`
+- [ ] 5. **改超时**（默认 3 秒，不改必失败）：`syncIngest` 60 秒、`searchServer` 20 秒
+- [ ] 6. 控制台 → 数据库 → 建集合 **`manifest`**，权限「所有人不可读写」
+         （`user_data` 不用建，`getUserData` 首次写入会自动创建）
+- [ ] 7. `syncIngest` 环境变量：`SOURCE_REPO=zhengbin1996/livebetter`（**必填**）；
+         `RELEASE_TAG=content-latest`、`BUDGET_MS=40000` 有默认值可省；`SYNC_TOKEN` 可选
+- [ ] 8. 定时触发器随函数代码一起部署（`cloudfunctions/syncIngest/config.json` 已写好，7 段 cron）
+- [ ] 9. （可选）重开 HTTP 访问服务 → 拿到**新地址** → 回填仓库 Variables `SYNC_URL`
+- [ ] 10. 先调 `{"action":"ping"}` 体检，再等一次定时轮询，确认内容真的搬进来
+
+**不受影响的部分**：GitHub 侧一切照旧 —— Actions 工作流、`content-latest` 标签、
+183 个 Release 资产、`zhengbin1996/livebetter` 仓库都不用动
+（云函数出站抓 Release，与 AppID 无关）。
+
+**会隔离 / 需要清理的部分**：
+
+- 收藏等用户数据按 **openid** 存在旧环境里，而 openid 随 AppID 变化 ⇒
+  换主体等价于**全新用户**，旧数据无法迁移（也不该迁移，主体不同）。
+- 旧环境的云存储分片（约 8 MB/版，按版本线性增长）留在旧主体账号下，**能删就删**。
+- 旧环境的云函数与「每 10 分钟一次」的定时触发器建议一并停掉，
+  否则会一直空转调一个已经没人用的函数。
+
+---
+
 ## 附一：配置值对照
 
 | 值             | 填在哪                                   | 内容                                      |
 | ------------- | ------------------------------------- | --------------------------------------- |
-| `appid`       | `project.config.json` → `appid`       | `wx0bcbaa8e93eaefc5`（已填）                |
-| `CLOUD_ENV`   | `miniprogram/config.js` → `CLOUD_ENV` | `cloud1-d8gc8etl2e047a62f`（**环境 ID**，不是 AppID，已填） |
+| `appid`       | `project.config.json` → `appid`       | `wx9db0838102248c71`（已填；换 AppID 见阶段 1 注意事项与**附零**）                |
+| `CLOUD_ENV`   | `miniprogram/config.js` → `CLOUD_ENV` | `cloud1-d8gz1sda5f63732a8`（**环境 ID**，不是 AppID；新主体环境，已填） |
 | `SOURCE_REPO` | 云函数 `syncIngest` 环境变量                 | `zhengbin1996/livebetter`（**唯一必填项**）    |
 | `SYNC_TOKEN`  | `syncIngest` 环境变量 + 仓库 Secrets        | 只有配 2.3 时才需要，两边同一串                      |
 | `SYNC_URL`    | 仓库 Variables                          | 只有配 2.3 时才需要                            |
@@ -307,7 +357,7 @@ curl -i -X POST 'https://<你复制的地址>' \
 1. **云函数默认超时 3 秒** —— `syncIngest` / `searchServer` 必须手动改大（60s / 20s），  
    否则表现是「HTTP 500 或直接超时，云函数日志里什么都没有」，最难查。
 2. **`CLOUD_ENV` 填成了 AppID** —— 环境 ID 形如 `cloud1-xxxx`，`wx` 开头的是 AppID。
-   本项目用的是 `cloud1-d8gc8etl2e047a62f`。填错不报错，只是云调用静默失败、`syncState` 永远是 `offline`。
+   本项目用的是 `cloud1-d8gz1sda5f63732a8`。填错不报错，只是云调用静默失败、`syncState` 永远是 `offline`。
 3. **HTTP 访问服务的 event 结构与 `callFunction` 完全不同** —— 它把请求包成  
    `{path, httpMethod, headers, queryStringParameters, body}`，业务参数在 **body 字符串**里，  
    直接读 `event.token` 只会拿到 `undefined`。本项目已在 `cloudfunctions/syncIngest/adapt.js`  
@@ -349,21 +399,30 @@ curl -i -X POST 'https://<你复制的地址>' \
 ## 附三：已知待办（不影响使用）
 
 - **云存储会随版本数线性增长**：云上路径带版本号（`content/<version>/...`），
-  每次新版本都要把 183 个分片重传一遍（约 8 MB），**旧版本不会自动清**。
+  每次新版本都要把全部分片重传一遍（约 8 MB），**旧版本不会自动清**。
   按每天一版算 ≈ 8 MB/天 ≈ 240 MB/月，基础套餐 2 GB 容量大约 8 个月触顶。
   自然的修法是「翻转成功后删掉上一版的 `content/<prevVersion>/` 目录」，
   但要确认客户端在极端时序下（正在下载全书时刚好跨版本）能自愈，所以先记着没动。
+- **分片数是会漂的，别写死**：文档/注释里出现的「183 片」是说明性数字。2026-10-14 实测：
+  本地构建 **181** 片（docs 146 / book 34 / essentials 1），而 `content-latest` Release 里有
+  **191** 个资产（docs 154）——**Release 里还留着上游已删的旧分片，会一直累积**。
+  做容量估算请按「每版约 8 MB」算，不要按具体片数。
+- **Release 资产会累积**（同上）：CI 用固定 tag `content-latest` + `--clobber` 上传，
+  上游删掉的文件对应的旧资产不会被清理。目前只多出 10 个、无害；
+  若哪天上游大改结构，Release 会明显膨胀（云函数每轮都要为这些死资产白试一次 404）。
 
 ---
 
 ## 附四：云函数完全调不起来（`ret:-3 system error`）怎么查
 
-**先定性 —— 这是平台层报错，我们的代码一行都没跑。** 判据有三个，同时成立就基本可以确定：
+**先定性 —— 这是平台层报错，我们的代码一行都没跑。** 几条判据同时成立就基本可以确定：
 
 - 报错里 `apiIdentifier` 是 `"scf/Invoke"` —— 这是**控制台调平台接口**的动作，不是函数返回值；
 - `reason` 是 `"system error."`，`code` 是 `-3` —— 平台网关直接回的错误码形态；
 - 云函数 → `syncIngest` → **日志**里**一条执行记录都没有**。
   （如果真跑到了我们代码，日志里必有记录，且 `{}` 会返回 `NO_SOURCE_REPO`。）
+- `pageUrl` 落在 `/scf/function-list` ⇒ **连「列举函数」都失败**，还没进到「云端测试」。
+  这比「单个函数测不动」更明确地指向**环境侧（A）**，优先按 A 走。
 
 这类错的含义是「**函数处于中间态或被平台挡住**」，跟业务代码无关。只需要一次二分就能定位。
 
@@ -379,14 +438,18 @@ curl -i -X POST 'https://<你复制的地址>' \
 
 ### A：环境 / 控制台侧
 
-1. **新环境没就绪** —— 新建的云开发环境要 2–5 分钟初始化，期间云函数服务不可用。等几分钟重试。
-2. **换入口**（新版控制台插件抽风时最有效）：浏览器打开 `https://tcb.cloud.tencent.com/dev`，
+1. **跨主体新账号（本项目 2026-10-14 的场景，最优先查这条）** —— 换主体后，若新主体
+   **主体实名认证未完成**，或**云开发服务没走完开通确认**（「按量付费」也要点完开通流程，
+   不是建了环境就完事），SCF 侧会整体不可用，表现就是**列表页与测试页一起报 `-3`**。
+   去 微信公众平台 → 设置 → 基本设置 看主体是否已认证；去云开发控制台确认计费方式已生效。
+2. **新环境没就绪** —— 新建的云开发环境要 2–5 分钟初始化，期间云函数服务不可用。等几分钟重试。
+3. **换入口**（新版控制台插件抽风时最有效）：浏览器打开 `https://tcb.cloud.tencent.com/dev`，
    微信扫码登录 → 选同一个环境 → 再测一次。
-3. **清缓存重启**：开发者工具 → 工具 → 清除缓存 → **全部清除** → 重启。
-4. **换环境**（最干净的解法）：控制台新建一个环境（如 `prod`），拿到新 envId，改
+4. **清缓存重启**：开发者工具 → 工具 → 清除缓存 → **全部清除** → 重启。
+5. **换环境**（最干净的解法）：控制台新建一个环境（如 `prod`），拿到新 envId，改
    `miniprogram/config.js` 的 `CLOUD_ENV`，再重新部署 4 个云函数。新环境干净，
    能把环境侧的历史状态整个甩掉。
-5. 仍然不行：带上下面的 **reqId** 提工单（云开发控制台右下角客服 / 微信开放社区）。
+6. 仍然不行：带上下面的 **reqId** 提工单（云开发控制台右下角客服 / 微信开放社区）。
    报错里那两个 ID 直接抄：`envId`（环境 ID）和 `reqId`（如 `4e8d1ba-1791556240`）。
 
 ### B：只是 `syncIngest` 的部署状态不对
