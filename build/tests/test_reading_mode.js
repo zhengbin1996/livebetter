@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const root = path.resolve(__dirname, '../../miniprogram')
 const config = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'))
-assert.deepStrictEqual(config.tabBar.list.map((tab) => tab.text), ['首页', '检索', '收藏', '阅读包', '关于'])
+assert.deepStrictEqual(config.tabBar.list.map((tab) => tab.text), ['首页', '检索', '收藏', '关于'])
 assert(config.pages.includes('pages/favorites/index'))
 assert(!config.pages.includes('pages/checkin/index'))
 const templates = ['pages/index/index.wxml', 'pages/search/index.wxml', 'pages/favorites/index.wxml', 'pages/item-detail/index.wxml', 'subpackages/read/pages/section-detail/index.wxml', 'components/item-row/index.wxml']

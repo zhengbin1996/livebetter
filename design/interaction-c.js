@@ -40,7 +40,7 @@ let sectionGuideOpen = false
 let guideSourceOpen = false
 let selectedDoc = null
 const trail = []
-const tabRoutes = ['home', 'search', 'favorites', 'reading-pack', 'about']
+const tabRoutes = ['home', 'search', 'favorites', 'about']
 const runtime = document.createElement('script')
 runtime.src = 'interaction-runtime.js'
 runtime.onload = () => {

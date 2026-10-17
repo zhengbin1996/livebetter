@@ -11,13 +11,6 @@ Page({
     sampleBusy: false,
   },
 
-  onShow() {
-    if (this.getTabBar) {
-      const tabBar = this.getTabBar()
-      if (tabBar) tabBar.setTab(3)
-    }
-  },
-
   downloadSample() {
     if (this.data.sampleBusy) return
     this.setData({ sampleBusy: true })

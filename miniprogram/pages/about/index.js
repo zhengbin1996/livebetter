@@ -21,7 +21,7 @@ Page({
   onShow() {
     if (this.getTabBar) {
       const tabBar = this.getTabBar()
-      if (tabBar) tabBar.setTab(4)
+      if (tabBar) tabBar.setTab(3)
     }
     this.apply()
   },

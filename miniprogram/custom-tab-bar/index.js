@@ -5,7 +5,6 @@ Component({
       { path: '/pages/index/index', text: '首页', icon: 'today' },
       { path: '/pages/search/index', text: '检索', icon: 'search' },
       { path: '/pages/favorites/index', text: '收藏', icon: 'star' },
-      { path: '/pages/reading-pack/index', text: '阅读包', icon: 'book' },
       { path: '/pages/about/index', text: '关于', icon: 'person' },
     ],
   },

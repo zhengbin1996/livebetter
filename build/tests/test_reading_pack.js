@@ -17,8 +17,7 @@ const page = Object.assign({}, definition, { data: JSON.parse(JSON.stringify(def
 page.setData = (patch) => Object.assign(page.data, patch)
 let selectedTab = -1
 page.getTabBar = () => ({ setTab: (index) => { selectedTab = index } })
-page.onShow()
-assert.strictEqual(selectedTab, 3, '阅读包作为第 4 个独立底部入口')
+assert.strictEqual(page.onShow, undefined, '阅读包入口关闭后不再选中底部导航')
 page.onUnavailablePurchase()
 assert.strictEqual(payCalls, 0, '支付未开通时不能发起真实交易')
 assert(notices.some((notice) => notice.includes('尚未开放')))
@@ -87,9 +86,9 @@ assert(product.samples.every((item) => item.fields['说人话'] && item.title &&
 const about = fs.readFileSync(path.resolve(__dirname, '../../miniprogram/pages/about/index.wxml'), 'utf8')
 assert(!about.includes('goReadingPack'), '关于页不再重复提供阅读包入口')
 const app = require('../../miniprogram/app.json')
-assert(app.pages.includes('pages/reading-pack/index'), '底部入口页面必须在主包')
+assert(app.pages.includes('pages/reading-pack/index'), '暂时关闭入口，保留阅读包页面以便恢复')
 assert(!app.subPackages.find((entry) => entry.name === 'mine').pages.includes('pages/reading-pack/index'))
-assert.deepStrictEqual(app.tabBar.list.map((entry) => entry.text), ['首页', '检索', '收藏', '阅读包', '关于'])
+assert.deepStrictEqual(app.tabBar.list.map((entry) => entry.text), ['首页', '检索', '收藏', '关于'])
 let tabDefinition
 global.Component = (component) => { tabDefinition = component }
 require('../../miniprogram/custom-tab-bar/index')
@@ -97,10 +96,10 @@ assert.deepStrictEqual(tabDefinition.data.list.map((entry) => entry.path), app.t
 const switches = []
 wx.switchTab = (options) => switches.push(options.url)
 tabDefinition.methods.onTap.call({ data: tabDefinition.data }, { currentTarget: { dataset: { i: 3 } } })
-assert.deepStrictEqual(switches, ['/pages/reading-pack/index'])
+assert.deepStrictEqual(switches, ['/pages/about/index'])
 delete require.cache[require.resolve('../../miniprogram/pages/about/index')]
 global.getApp = () => ({ globalData: { essentials: {} } })
 require('../../miniprogram/pages/about/index')
 definition.onShow.call({ getTabBar: page.getTabBar, apply() {} })
-assert.strictEqual(selectedTab, 4, '关于页高亮需随新增入口后移')
+assert.strictEqual(selectedTab, 3, '关闭阅读包入口后关于页高亮第 4 项')
 console.log('PASS 阅读包 PDF 下载、失败重试、100 分计划价格及未开通支付保护')
