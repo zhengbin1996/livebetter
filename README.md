@@ -200,6 +200,7 @@ GitHub Actions（每天 05:17 北京时间 / build/ 变更时）
 
 ```bash
 # 需要 Python 3.11+ 与 Node 20+
+python -m pip install -r build/requirements.txt
 
 # 1) 拉上游内容到 upstream/
 python build/fetch_upstream.py
@@ -213,8 +214,8 @@ python build/parse.py --no-corpus    # 跳过 3.7 MB 的检索语料，快速迭
 python build/check_miniprogram.py
 
 # 4) 逻辑单测
-node build/tests/test_search.js
-node build/tests/test_merge.js
+for f in build/tests/test_*.js; do node "$f" || exit 1; done
+for f in build/tests/test_*.py; do python "$f" || exit 1; done
 
 # 5) 本地检查 Release 资产命名与 sha256（不写盘）
 python build/stage_release.py --check
