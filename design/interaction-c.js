@@ -16,7 +16,7 @@ let draft = null
 let notice = ''
 let noticeTimer = null
 let searchSubmitted = false
-let recommendation = 0
+let recommendation = -1
 let visibleCount = 30
 const scrolls = {}
 const screen = document.querySelector('#screen')
@@ -62,9 +62,18 @@ function card(item, highlight) {
 function searchForm() { return `<form class="demo-search"><input name="query" aria-label="搜索建议" placeholder="搜建议、搜症状、搜钱的事" value="${escape(query)}"><button type="submit">搜</button></form>` }
 function head(title, label, command) { return `<div class="section-head"><h2>${title}</h2>${label ? button(label, command) : ''}</div>` }
 function moduleHead(number, title, label, command) { return `<div class="home-module-head"><h2 class="home-module-title"><span class="home-module-number">${number}</span><span>${title}</span></h2>${label ? button(label, command, '', 'today-all') : ''}</div>` }
+function shuffleRecommendation() {
+  const len = demoData.items.filter((item) => item.ratio === '极高' && !item.dispute).length
+  if (recommendation < 0 || recommendation >= len) recommendation = Math.floor(Math.random() * len)
+  else if (len > 1) {
+    const next = Math.floor(Math.random() * (len - 1))
+    recommendation = next >= recommendation ? next + 1 : next
+  }
+}
 function homePage() {
   const candidates = demoData.items.filter((item) => item.ratio === '极高' && !item.dispute)
-  const pick = candidates[recommendation % candidates.length]
+  if (recommendation < 0) shuffleRecommendation()
+  const pick = candidates[recommendation]
   return `<div class="home-brand"><strong>高性价比人生指南</strong><span>34 节 · 原文阅读</span></div><section class="home-search" aria-label="搜索建议"><div class="home-search-title">找一条需要的建议</div>${searchForm()}</section>${pick ? `<section class="home-module home-module--recommend" aria-label="推荐阅读">${moduleHead('01', '推荐阅读', '换一条 ↻', 'shuffle')}${card(pick, true)}</section>` : ''}<section class="home-module home-module--topics" aria-label="按你的处境">${moduleHead('02', '按你的处境')}<p class="home-module-note">从关心的问题开始，展开分类找建议。</p><div class="home-topic-list">${demoData.problemGroups.map((group) => `<details class="home-topic"><summary>${escape(group.name)}</summary>${demoData.problems.filter((problem) => problem.group === group.key).map((problem) => `<button data-command="section" data-sec="${problem.sec}">${escape(problem.q)} ›</button>`).join('')}</details>`).join('')}</div></section><section class="home-module home-module--directory" aria-label="全书目录">${moduleHead('03', '全书目录')}${button('章节与专题长文　›', 'sections', '', 'home-directory-link')}<p class="home-module-note">${demoData.sections.length} 节 · ${demoData.docs.length} 篇专题，按需要查阅。</p></section>`
 }
 function matching() {
@@ -173,6 +182,7 @@ function render() {
   renderOverlay()
 }
 function navigate(next) {
+  if (next === 'home' && route !== 'home') shuffleRecommendation()
   scrolls[route] = screen.scrollTop
   draft = null
   sharePreview = null
@@ -264,7 +274,7 @@ document.addEventListener('click', (event) => {
   else if (command === 'open') { pushPage('detail'); selected = item; originalOpen = false; render() }
   else if (command === 'back') { const state = trail.pop(); if (state) { selected = state.selected; selectedSection = state.selectedSection; selectedDoc = state.selectedDoc; originalOpen = state.originalOpen; sectionGuideOpen = state.sectionGuideOpen; guideSourceOpen = state.guideSourceOpen; navigate(state.route) } else navigate('home') }
   else if (command === 'favorite') favorites.toggle(item)
-  else if (command === 'shuffle') { recommendation = (recommendation + 1) % demoData.items.length; render() }
+  else if (command === 'shuffle') { shuffleRecommendation(); render() }
   else if (command === 'original') { originalOpen = !originalOpen; render(); if (!originalOpen) screen.querySelector('.original-toggle').scrollIntoView({ block: 'center' }) }
   else if (command === 'filters') { draft = JSON.parse(JSON.stringify(filters)); renderOverlay() }
   else if (command === 'close-overlay') { draft = null; renderOverlay() }
@@ -306,7 +316,7 @@ document.querySelector('#width').onclick = (event) => { const narrow = phone.sty
 document.querySelector('#reset').onclick = () => {
   Object.keys(localStorage).filter((key) => key.startsWith(demoPrefix)).forEach((key) => localStorage.removeItem(key))
   demoData.items.forEach((item) => advice.remember(item))
-  trail.length = 0; directoryTab = 'sections'; Object.values(directoryViews).forEach((view) => { view.query = ''; view.scroll = 0 }); route = 'home'; query = ''; filters = emptyFilters(); searchSubmitted = false; draft = null; sharePreview = null; packCheckout = false; packUnlocked = false; recommendation = 0; notice = ''
+  trail.length = 0; directoryTab = 'sections'; Object.values(directoryViews).forEach((view) => { view.query = ''; view.scroll = 0 }); route = 'home'; query = ''; filters = emptyFilters(); searchSubmitted = false; draft = null; sharePreview = null; packCheckout = false; packUnlocked = false; recommendation = -1; notice = ''
   if (noticeTimer) clearTimeout(noticeTimer)
   render(); screen.scrollTop = 0
 }

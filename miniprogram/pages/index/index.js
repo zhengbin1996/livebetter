@@ -6,12 +6,6 @@ const adviceContent = require('../../utils/advice-content')
 const favorites = require('../../utils/favorites')
 const share = require('../../utils/share')
 
-/** 同一天进来看到同一条；隔天自动换。用本地日期算种子，避免 UTC 午夜换条。 */
-function daySeed() {
-  const d = new Date()
-  return d.getFullYear() * 372 + (d.getMonth() + 1) * 31 + d.getDate()
-}
-
 Page({
   data: {
     bookName: cfg.BOOK_NAME,
@@ -30,7 +24,6 @@ Page({
 
   /** 分组的展开状态放页面实例上，不要进 data —— 否则 onShow 重建时会被重置 */
   openMap: {},
-  pickIdx: -1,
 
   async onLoad() {
     this.setData({ singlePage: share.singlePage() })
@@ -51,7 +44,7 @@ Page({
       const tb = this.getTabBar()
       if (tb) tb.setTab(0)
     }
-    if (app.globalData.essentials) this.apply()
+    if (app.globalData.essentials) this.apply(true)
   },
 
   onHide() { favorites.hide(this) },
@@ -67,7 +60,7 @@ Page({
 
   onAdviceRetry() { this.buildPick(0) },
 
-  apply() {
+  apply(shuffle) {
     const e = app.globalData.essentials || {}
     const legend = e.legend || {}
     const stats = e.stats || {}
@@ -83,7 +76,7 @@ Page({
       groups: this.buildGroups(e),
       labelMap: legend.tagLabels || null,
     })
-    this.buildPick(0)
+    this.buildPick(shuffle)
   },
 
   buildGroups(e) {
@@ -108,18 +101,22 @@ Page({
     this.setData({ groups })
   },
 
-  buildPick(step) {
+  buildPick(shuffle) {
     const picks = ((app.globalData.essentials || {}).picks) || []
     const len = picks.length
     if (!len) {
       this.setData({ pick: null, pickTotal: 0 })
       return
     }
-    let idx = this.pickIdx
-    if (idx < 0) idx = daySeed() % len
-    if (step) idx = (idx + step + len * 10) % len
+    let idx = picks.findIndex((pick) => this.data.pick && pick.sid === this.data.pick.sid)
+    if (idx < 0) {
+      idx = Math.floor(Math.random() * len)
+    } else if (shuffle && len > 1) {
+      // 从其余候选中均匀抽取，避免相邻两次显示同一条。
+      const next = Math.floor(Math.random() * (len - 1))
+      idx = next >= idx ? next + 1 : next
+    }
     const selected = picks[idx]
-    this.pickIdx = idx
     const p = advice.normalize(selected)
     this.setData({
       pick: p,
